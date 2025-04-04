@@ -2,7 +2,7 @@
 
 clear all;
 
-fullCraniotomyCSDDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\correct resolutions\3._analysisByEvent.mat';
+fullCraniotomyCSDDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\0.49resolution_correct\3._analysisByEvent.mat';
 %fullCraniotomyBIBNDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\BIBN\3._analysisByEvent.mat';
 
 cd (fullCraniotomyCSDDir);
@@ -36,6 +36,27 @@ end
 % Sort by the three columns: numberAfterPrefix, date, fovNumber
 [~, idx] = sortrows(sortKey);
 sortedFileNames = fileNames(idx);
+
+%% Extract and combine resultData from each experiment
+
+combinedTable = [];
+
+% Loop through each file
+for i = 1:length(sortedFileNames)
+    % Load the .mat file
+    data = load(sortedFileNames{i});
+    
+    % Extract data from the structure (assuming variable names are consistent across files)
+    % Here, assuming the variable name is 'result' in each .mat file
+    resultData = data.resultsFinal;
+
+    % Create a column with the filename
+    fileNameColumn = repelem(sortedFileNames(i), size(resultData, 1), 1); % Repeat filename for each row
+  
+    % Append resultData to combinedTable
+    combinedTable = [combinedTable; resultData, table(fileNameColumn)];
+end
+
 
 %% Extract and combine resultData from each experiment
 

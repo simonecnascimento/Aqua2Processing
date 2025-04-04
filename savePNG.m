@@ -1,5 +1,5 @@
 % Specify the folder containing the .fig files
-folderPath = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\figures\all cells (except multinucleated)\network_digraph\networks';  % Replace with your folder path
+folderPath = 'D:\2photon\Simone\Simone_Macrophages\GLMs\locoDiam-diamFluor';  % Replace with your folder path
 
 % Get a list of all .fig files in the folder
 figFiles = dir(fullfile(folderPath, '*.fig'));

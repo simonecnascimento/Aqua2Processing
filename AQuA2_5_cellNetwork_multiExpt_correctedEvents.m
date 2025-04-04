@@ -3,7 +3,7 @@
 clear all;
 
 % Set the directory for the experiment you need
-fullCraniotomyBaselineDir = 'V:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\3._analysisByEvent.mat';
+fullCraniotomyBaselineDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\3._analysisByEvent.mat';
 %fullCraniotomyCSDDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\1._analysis.mat';
 % thinBoneBaselineDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\thinBone\_analysisByEvent.mat';
 
@@ -51,7 +51,7 @@ simultaneousMatrixDelaybyCell_average_all = cell(length(sortedFileNames), 1);
 listOfEvents_perCell_nodeOUTdegree_all = cell(length(sortedFileNames), 1);
 cellPairs_edges_distanceMicron_multipleAppearance_all = [];
 
-for experiment = 2:length(sortedFileNames)
+for experiment = 1:length(sortedFileNames)
  
     [data_analysis, data_aqua, data_CFU, AquA_fileName] = loadAnalysisData(sortedFileNames, experiment);
 

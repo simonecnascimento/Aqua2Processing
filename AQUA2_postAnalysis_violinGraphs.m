@@ -1,3 +1,16 @@
+%% Data analysis fullCraniotomy vs thinBone
+
+clear all; 
+%for fullCraniotomy data - load spreadsheet and add Var3
+load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\AQuA2_data_fullCraniotomy_features_baseline.mat')
+load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\multinucleated cells\multinucleatedCells.mat');
+fullCraniotomy_combinedTable = addvars(combinedTable, multinucleatedCells.Var3, 'NewVariableNames', 'Multinucleated');
+fullCraniotomy_multinucleated = fullCraniotomy_combinedTable{:,17};
+fullCraniotomy_cellLocation = fullCraniotomy_combinedTable{:,13};
+fullCraniotomy_all_NM_indices = fullCraniotomy_multinucleated == 0;
+fullCraniotomy_numOnes = sum(fullCraniotomy_all_NM_indices);
+
+
 %% Circularity Perivascular vs Non-perivascular
 
 circularity = combinedTable{:,4};

@@ -58,20 +58,21 @@ for i = 1:length(sortedFileNames)
     combinedTable = [combinedTable; resultData, table(fileNameColumn)];
 end
 
-%%
+%% after the extraction was done
+
 %for fullCraniotomy baseline data - load spreadsheet and add Var3
 load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\AQuA2_data_fullCraniotomy_features_baseline.mat')
 load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\multinucleated cells\multinucleatedCells.mat');
 fullCraniotomy_combinedTable = addvars(combinedTable, multinucleatedCells.Var3, 'NewVariableNames', 'Multinucleated');
 fullCraniotomy_multinucleated = fullCraniotomy_combinedTable{:,17};
-fullCraniotomy_cellLocation = fullCraniotomy_combinedTable{:,13};
-fullCraniotomy_redLabel = fullCraniotomy_combinedTable{:,14};
-fullCraniotomy_all_NM_indices = fullCraniotomy_multinucleated == 0;
-fullCraniotomy_numOnes = sum(fullCraniotomy_all_NM_indices);
-fullCraniotomy_combinedTable_NM = fullCraniotomy_combinedTable(fullCraniotomy_all_NM_indices == 1, :);
-
-%fullCraniotomy_multinucleated_indices = fullCraniotomy_multinucleated == 1;
-%sum(fullCraniotomy_multinucleated_indices);
+fullCraniotomy_combinedTable_NM = fullCraniotomy_combinedTable(fullCraniotomy_multinucleated == 0, :);
+fullCraniotomy_cellLocation = fullCraniotomy_combinedTable_NM{:,13};
+fullCraniotomy_redLabel = fullCraniotomy_combinedTable_NM{:,14};
+% By cell type
+fullCraniotomy_perivascular_indices = fullCraniotomy_cellLocation == 0; % Indices of cells belonging to group 0
+fullCraniotomy_nonPerivascular_indices = fullCraniotomy_cellLocation == 2; % Indices of cells belonging to group 2
+fullCraniotomy_combinedTable_perivascular = fullCraniotomy_combinedTable(perivascular_indices,:);
+fullCraniotomy_combinedTable_nonPerivascular = fullCraniotomy_combinedTable(nonPerivascular_indices,:);
 
 %for thinBone data - create a new table 'multinucleatedCells' and add Var1
 load('V:\2photon\Simone\Simone_Macrophages\AQuA2_Results\thinBone\AQuA2_data_thinBone.mat')
@@ -80,13 +81,13 @@ thinBone_combinedTable = addvars(combinedTable, thinBone_multinucleated.Var1, 'N
 thinBone_cellLocation = thinBone_combinedTable{:,13};
 thinBone_all_NM_indices = thinBone_multinucleated == 0;
 thinBone_numOnes = sum(thinBone_all_NM_indices);
-combinedTable_thinBone = combinedTable(thinBone_all_NM_indices,:);
+thinBone_combinedTable = combinedTable(thinBone_all_NM_indices,:);
 
-%% By cell type
-perivascular_NM_indices = fullCraniotomy_cellLocation == 0 & fullCraniotomy_multinucleated == 0; % Indices of cells belonging to group 0
-nonPerivascular_NM_indices = fullCraniotomy_cellLocation == 2 & fullCraniotomy_multinucleated == 0; % Indices of cells belonging to group 2
-fullCraniotomy_combinedTable_perivascular = fullCraniotomy_combinedTable(perivascular_NM_indices,:);
-fullCraniotomy_combinedTable_nonPerivascular = fullCraniotomy_combinedTable(nonPerivascular_NM_indices,:);
+%% Count perivascular cells labeled with red and those not labeled with red
+perivascular_red = sum(fullCraniotomy_cellLocation == 0 & fullCraniotomy_redLabel == 1);
+perivascular_not_red = sum(fullCraniotomy_cellLocation == 0 & fullCraniotomy_redLabel == 0);
+non_perivascular_red = sum(fullCraniotomy_cellLocation == 2 & fullCraniotomy_redLabel == 1);
+non_perivascular_not_red = sum(fullCraniotomy_cellLocation == 2 & fullCraniotomy_redLabel == 0);
 
 %% Features by Cell
 
@@ -94,17 +95,36 @@ fullCraniotomy_combinedTable_nonPerivascular = fullCraniotomy_combinedTable(nonP
 area_perivascular_NM = fullCraniotomy_combinedTable_perivascular(:,"Area(um2)");
 perimeter_perivascular_NM = fullCraniotomy_combinedTable_perivascular(:,"Perimeter");
 circularity_perivascular_NM = fullCraniotomy_combinedTable_perivascular(:,"Circularity");
-numberOfEvents_perivascular_NM = fullCraniotomy_combinedTable_perivascular(:,"Number of Events");
 maxDFF_perivascular_NM = fullCraniotomy_combinedTable_perivascular(:,"Max dFF");
 dFFAUC_perivascular_NM = fullCraniotomy_combinedTable_perivascular(:,"dFF AUC");
+duration_perivascular_NM = fullCraniotomy_combinedTable_perivascular(:,"Duration 10% to 10%");
 
-%Perivascular
+%number of events 
+numberOfEvents_perivascular_NM = fullCraniotomy_combinedTable_perivascular(:,"Number of Events");
+totalEvents_perivascular_NM = sum(numberOfEvents_perivascular_NM{:,:});
+%number of events in Hz
+numberOfEvents_perivascular_Hz = table2cell(numberOfEvents_perivascular_NM);
+numberOfEvents_perivascular_Hz = cell2mat(numberOfEvents_perivascular_Hz);
+numberOfEvents_perivascular_Hz = numberOfEvents_perivascular_Hz / 900;
+numberOfEvents_perivascular_Hz_new = numberOfEvents_perivascular_Hz * 1000;
+
+%Non-Perivascular
 area_nonPerivascular_NM = fullCraniotomy_combinedTable_nonPerivascular(:,"Area(um2)");
 perimeter_nonPerivascular_NM = fullCraniotomy_combinedTable_nonPerivascular(:,"Perimeter");
 circularity_nonPerivascular_NM = fullCraniotomy_combinedTable_nonPerivascular(:,"Circularity");
-numberOfEvents_nonPerivascular_NM = fullCraniotomy_combinedTable_nonPerivascular(:,"Number of Events");
 maxDFF_nonPerivascular_NM = fullCraniotomy_combinedTable_nonPerivascular(:,"Max dFF");
 dFFAUC_nonPerivascular_NM = fullCraniotomy_combinedTable_nonPerivascular(:,"dFF AUC");
+duration_nonPerivascular_NM = fullCraniotomy_combinedTable_nonPerivascular(:,"Duration 10% to 10%");
+
+%number of events 
+numberOfEvents_nonPerivascular_NM = fullCraniotomy_combinedTable_nonPerivascular(:,"Number of Events");
+totalEvents_nonPerivascular_NM = sum(numberOfEvents_nonPerivascular_NM{:,:});
+%number of events in Hz
+numberOfEvents_nonPerivascular_Hz = table2cell(numberOfEvents_nonPerivascular_NM);
+numberOfEvents_nonPerivascular_Hz = cell2mat(numberOfEvents_nonPerivascular_Hz);
+numberOfEvents_nonPerivascular_Hz = numberOfEvents_nonPerivascular_Hz / 900;
+numberOfEvents_nonPerivascular_Hz_new = numberOfEvents_nonPerivascular_Hz * 1000;
+
 
 %% Perivascular By FOV
 
@@ -133,7 +153,7 @@ for x = 1:length(perivascular_uniqueGroups)
 
     % Append to result table
     perivascular_tempTable = table({perivascular_groupName}, perivascular_avgValues(1),...
-        perivascular_avgValues(2),perivascular_avgValues(3),perivascular_avgValues(4),...
+    perivascular_avgValues(2),perivascular_avgValues(3),perivascular_avgValues(4),...
     perivascular_avgValues(5),perivascular_avgValues(6),perivascular_avgValues(7),...
     perivascular_avgValues(8),perivascular_avgValues(9),perivascular_avgValues(10),...
     perivascular_avgValues(11),'VariableNames', [{'Group'}, perivascular_selectedVariableNames]);
@@ -193,6 +213,51 @@ circularity_nonPerivascular = nonPerivascular_averagedTable{:,4};
 maxDFF_nonPerivascular = nonPerivascular_averagedTable{:,5};
 dFFAUC_nonPerivascular = nonPerivascular_averagedTable{:,11};
 numberOfEvents_nonPerivascular = nonPerivascular_averagedTable{:,12};
+
+
+%% Features of perivascular cells (positive vs negative coefficient)
+
+% Read the Excel file into a table
+coefficients = readtable('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\coefficients\coefficients.xlsx');
+save('coefficients.mat', 'data');
+
+load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\coefficients\coefficients.mat');
+fullCraniotomy_combinedTable2 = addvars(fullCraniotomy_combinedTable, coefficients.Var3, 'NewVariableNames', 'Coefficients(1=pos;2=neg)'); % 1 = positive, 2 = negative
+
+fullCraniotomy_coefficients = fullCraniotomy_combinedTable2{:,18};
+perivascular_positive_indices = fullCraniotomy_coefficients == 1;
+perivascular_negative_indices = fullCraniotomy_coefficients == 2;
+
+fullCraniotomy_combinedTable2_perivascular_positive_indices = fullCraniotomy_combinedTable2(perivascular_positive_indices,:);
+fullCraniotomy_combinedTable2_perivascular_negative_indices = fullCraniotomy_combinedTable2(perivascular_negative_indices,:);
+
+
+%Perivascular Positive
+area_perivascular_positive= fullCraniotomy_combinedTable2_perivascular_positive_indices(:,"Area(um2)");
+perimeter_perivascular_positive = fullCraniotomy_combinedTable2_perivascular_positive_indices(:,"Perimeter");
+circularity_perivascular_positive = fullCraniotomy_combinedTable2_perivascular_positive_indices(:,"Circularity");
+numberOfEvents_perivascular_positive = fullCraniotomy_combinedTable2_perivascular_positive_indices(:,"Number of Events");
+maxDFF_perivascular_positive = fullCraniotomy_combinedTable2_perivascular_positive_indices(:,"Max dFF");
+dFFAUC_perivascular_positive = fullCraniotomy_combinedTable2_perivascular_positive_indices(:,"dFF AUC");
+
+%Perivascular Negative
+area_perivascular_negative = fullCraniotomy_combinedTable2_perivascular_negative_indices(:,"Area(um2)");
+perimeter_perivascular_negative = fullCraniotomy_combinedTable2_perivascular_negative_indices(:,"Perimeter");
+circularity_perivascular_negative = fullCraniotomy_combinedTable2_perivascular_negative_indices(:,"Circularity");
+numberOfEvents_perivascular_negative = fullCraniotomy_combinedTable2_perivascular_negative_indices(:,"Number of Events");
+maxDFF_perivascular_negative = fullCraniotomy_combinedTable2_perivascular_negative_indices(:,"Max dFF");
+dFFAUC_perivascular_negative = fullCraniotomy_combinedTable2_perivascular_negative_indices(:,"dFF AUC");
+
+%number of events in Hz
+%positive
+numberOfEvents_perivascular_positive_Hz = table2cell(numberOfEvents_perivascular_positive);
+numberOfEvents_perivascular_positive_Hz = cell2mat(numberOfEvents_perivascular_positive_Hz);
+numberOfEvents_perivascular_positive_Hz = numberOfEvents_perivascular_positive_Hz / 900;
+%negative
+numberOfEvents_perivascular_negative_Hz = table2cell(numberOfEvents_perivascular_negative);
+numberOfEvents_perivascular_negative_Hz = cell2mat(numberOfEvents_perivascular_negative_Hz);
+numberOfEvents_perivascular_negative_Hz = numberOfEvents_perivascular_negative_Hz / 900;
+
 
 %% duplicating table to manually delete a cell if necessary
 
