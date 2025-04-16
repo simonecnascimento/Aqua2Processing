@@ -39,7 +39,7 @@ sortedFileNames = fileNames(idx);
 
 %% Extract and combine resultData from each experiment
 
-combinedTable = [];
+combinedTable_complete = [];
 
 % Loop through each file
 for i = 1:length(sortedFileNames)
@@ -54,7 +54,7 @@ for i = 1:length(sortedFileNames)
     fileNameColumn = repelem(sortedFileNames(i), size(resultData, 1), 1); % Repeat filename for each row
   
     % Append resultData to combinedTable
-    combinedTable = [combinedTable; resultData, table(fileNameColumn)];
+    combinedTable_complete = [combinedTable_complete; resultData, table(fileNameColumn)];
 end
 
 
@@ -85,6 +85,30 @@ for file = 1:length(sortedFileNames)
 
     % Load the .mat file
     data_analysis = load(sortedFileNames{file});
+
+    % fix starting frames due to Aqua counting CSD events a couple framesbefore
+    fixes = containers.Map('KeyType', 'double', 'ValueType', 'any');
+
+    % Add your corrections
+    fixes(2) = {[3, 170]};
+    fixes(3) = {[3, 88; 3, 89; 3, 98]};
+    fixes(5) = {[3, 74]};
+    fixes(6) = {[3, 9; 3, 11]};
+    fixes(10) = {[3, 113]};
+    fixes(11) = {[3, 131]};
+    fixes(12) = {[3, 35]};
+    fixes(13) = {[3, 102; 3, 103; 3, 108]};
+    
+    % Apply if any fix exists for the file
+    if isKey(fixes, file)
+        coords = fixes(file);
+        for i = 1:size(coords{1}, 1)  % Access the first element of the cell
+            r = coords{1}(i, 1);  % Row index
+            c = coords{1}(i, 2);  % Column index
+            % Assuming 'resultsRaw.ftsTb' exists in the loaded file
+            data_analysis.resultsRaw.ftsTb{r, c} = 1855;
+        end
+    end
 
     startingFrame = data_analysis.resultsRaw{3,:};
 
@@ -175,8 +199,7 @@ for param = 1:length(parameters)
     combinedTable(emptyRows, :) = [];
 
     % Clean and Classify data into increase, decrease, noChange
-    [cleanedData, classifiedData, classifiedTable.(parameter)] = processAndClassify(paramTables_allPhases.(parameter));
-
+    [cleanedData, classifiedData, classifiedTable.(parameter)] = processAndClassify(paramTables_allPhases.(parameter), parameter);
 
     % Store cleaned data
     paramTables_allPhases_cleanedData.(parameter) = cleanedData.allPhases;
@@ -254,8 +277,8 @@ preCSD_numberOfEvents = [preCSD_numberOfEvents, preCSD_numberOfEvents_Hz];
 duringCSD_eventList = eventsByCell_all(:,3);
 duringCSD_eventList_cleaned = duringCSD_eventList(~cellfun(@isempty, duringCSD_eventList));
 duringCSD_numberOfEvents = cellfun(@(x) numel(x), duringCSD_eventList_cleaned);
-%duringCSD_numberOfEvents_Hz = duringCSD_numberOfEvents/1800;
-%duringCSD_numberOfEvents = [duringCSD_numberOfEvents, duringCSD_numberOfEvents_Hz];
+duringCSD_numberOfEvents_Hz = duringCSD_numberOfEvents/900;
+duringCSD_numberOfEvents = [duringCSD_numberOfEvents, duringCSD_numberOfEvents_Hz];
 
 % postCSD
 postCSD_eventList = eventsByCell_all(:,4);
