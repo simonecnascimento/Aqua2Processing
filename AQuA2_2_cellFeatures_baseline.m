@@ -13,30 +13,7 @@ FilesAll = dir(fullfile(fullCraniotomyBaselineDir, '*_analysis.mat'));
 
 % Extract file names
 fileNames = {FilesAll.name};
-
-% Initialize an array to store the extracted parts for sorting
-sortKey = [];
-
-% Loop through all filenames to extract the parts for sorting
-for file = 1:length(fileNames)
-    filename = fileNames{file};
-    
-    % Extract the number after "Pf4Ai162-" (e.g., '2' from 'Pf4Ai162-2')
-    numberAfterPrefix = sscanf(filename, 'Pf4Ai162-%d', 1);
-    
-    % Extract the date (e.g., '221130' from 'Pf4Ai162-2_221130_FOV6')
-    dateStr = regexp(filename, '\d{6}', 'match', 'once');
-    
-    % Extract the FOV number (e.g., 'FOV6' from 'Pf4Ai162-2_221130_FOV6')
-    fovNumber = sscanf(filename, 'Pf4Ai162-%*d_%*d_FOV%d', 1);
-    
-    % Store the extracted values in a matrix for sorting
-    sortKey = [sortKey; numberAfterPrefix, str2double(dateStr), fovNumber];
-end
-
-% Sort by the three columns: numberAfterPrefix, date, fovNumber
-[~, idx] = sortrows(sortKey);
-sortedFileNames = fileNames(idx);
+sortedFileNames = sortFileNames(fileNames);
 
 %% Extract and combine resultData from each experiment
 
