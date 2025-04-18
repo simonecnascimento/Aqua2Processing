@@ -2,40 +2,22 @@
 
 clear all;
 
-fullCraniotomyCSDDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\0.49resolution_correct\3._analysisByEvent.mat';
-%fullCraniotomyBIBNDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\BIBN\3._analysisByEvent.mat';
+experiment = input('CSD or BIBN-CSD?: ', 's');  % 's' means input as string
 
-cd (fullCraniotomyCSDDir);
-
-% Get all .mat files in the directory
-FilesAll = dir(fullfile(fullCraniotomyCSDDir, '*_analysisByEvent.mat')); 
-
-% Extract file names
-fileNames = {FilesAll.name};
-
-% Initialize an array to store the extracted parts for sorting
-sortKey = [];
-
-% Loop through all filenames to extract the parts for sorting
-for file = 1:length(fileNames)
-    filename = fileNames{file};
-    
-    % Extract the number after "Pf4Ai162-" (e.g., '2' from 'Pf4Ai162-2')
-    numberAfterPrefix = sscanf(filename, 'Pf4Ai162-%d', 1);
-    
-    % Extract the date (e.g., '221130' from 'Pf4Ai162-2_221130_FOV6')
-    dateStr = regexp(filename, '\d{6}', 'match', 'once');
-    
-    % Extract the FOV number (e.g., 'FOV6' from 'Pf4Ai162-2_221130_FOV6')
-    fovNumber = sscanf(filename, 'Pf4Ai162-%*d_%*d_FOV%d', 1);
-    
-    % Store the extracted values in a matrix for sorting
-    sortKey = [sortKey; numberAfterPrefix, str2double(dateStr), fovNumber];
+if strcmp(experiment, 'CSD')
+    fullCraniotomyCSDDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\0.49resolution_correct\3._analysisByEvent.mat';  
+    directory = fullCraniotomyCSDDir;
+elseif strcmp(experiment, 'BIBN-CSD')
+    fullCraniotomyBIBNDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\BIBN\3._analysisByEvent.mat';
+    directory = fullCraniotomyBIBNDir;
 end
 
-% Sort by the three columns: numberAfterPrefix, date, fovNumber
-[~, idx] = sortrows(sortKey);
-sortedFileNames = fileNames(idx);
+% Get all .mat files in the directory and sort names
+cd(directory);
+FilesAll = dir(fullfile(directory, '*_analysisByEvent.mat')); 
+fileNames = {FilesAll.name};
+sortedFileNames = sortFileNames(fileNames);
+
 
 %% Extract and combine resultData from each experiment
 
@@ -80,6 +62,8 @@ eventsByCell_all = [];
 eventsDelays = [];
 columnsToMedian_all = [];
 
+durationCSDmin = input('Enter duration of duringCSD in minutes (1 or 2): ');
+
 % Loop through each file
 for file = 1:length(sortedFileNames)
 
@@ -89,15 +73,17 @@ for file = 1:length(sortedFileNames)
     % fix starting frames due to Aqua counting CSD events a couple framesbefore
     fixes = containers.Map('KeyType', 'double', 'ValueType', 'any');
 
-    % Add your corrections
-    fixes(2) = {[3, 170]};
-    fixes(3) = {[3, 88; 3, 89; 3, 98]};
-    fixes(5) = {[3, 74]};
-    fixes(6) = {[3, 9; 3, 11]};
-    fixes(10) = {[3, 113]};
-    fixes(11) = {[3, 131]};
-    fixes(12) = {[3, 35]};
-    fixes(13) = {[3, 102; 3, 103; 3, 108]};
+    if strcmp(experiment, 'CSD')
+        fixes(2) = {[3, 170]};
+        fixes(3) = {[3, 88; 3, 89; 3, 98]};
+        fixes(5) = {[3, 74]};
+        fixes(6) = {[3, 9; 3, 11]};
+        fixes(10) = {[3, 113]};
+        fixes(11) = {[3, 131]};
+        fixes(12) = {[3, 35]};
+        fixes(13) = {[3, 102; 3, 103; 3, 108]};
+    end
+
     
     % Apply if any fix exists for the file
     if isKey(fixes, file)
@@ -124,12 +110,16 @@ for file = 1:length(sortedFileNames)
     % frames for CSD phases
     baseline_preCSD_frames = [1,927]; %[927,1854] [1,927]
     preCSD_frames = 1854;
-    % 1min duringCSD
-    duringCSD_frames = [1855, 1917]; %60sec (ca. 62 frames)
-    postCSD_frames = [1918, 3772];
-    % 2min duringCSD
-%     duringCSD_frames = [1855, 1979]; %60sec (ca. 124 frames)
-%     postCSD_frames = [1980, 3837];
+
+    if durationCSDmin == 1
+        % 1min duringCSD
+        duringCSD_frames = [1855, 1917]; % ~62 frames (60 sec)
+        postCSD_frames = [1918, 3772];
+    elseif durationCSDmin == 2
+        % 2min duringCSD
+        duringCSD_frames = [1855, 1979]; % ~124 frames (120 sec)
+        postCSD_frames = [1980, 3837];
+    end
 
     % separate events in pre, during and postCSD
     eventsByCell_experiment = eventsCSDphases(data_analysis, preCSD_frames, duringCSD_frames, postCSD_frames, baseline_preCSD_frames);
@@ -154,7 +144,7 @@ for file = 1:length(sortedFileNames)
 end
 
 % Calculate event rate byCell and byFOV(median)
-[eventHz_byCell, eventHz_byFOV] = calculateEventRate(paramTables_all_byCell, paramTables_all_median_byFOV);
+[eventHz_byCell, eventHz_byFOV] = calculateEventRate(paramTables_all_byCell, paramTables_all_median_byFOV, durationCSDmin);
 
 %get name of columns/parameters
 parameters = fieldnames(paramTables_all_byCell);
@@ -177,26 +167,26 @@ for param = 1:length(parameters)
     
 
     % Initialize an empty table to store concatenated data
-    combinedTable = table(); % Initialize an empty table to store concatenated data
+    combinedTable_currentParam = table(); % Initialize an empty table to store concatenated data
 
     for expt = 1:length(paramTables_all_byCell)
         currentTable = paramTables_all_byCell(expt).(parameter);
-        combinedTable = [combinedTable; currentTable];
+        combinedTable_currentParam = [combinedTable_currentParam; currentTable];
     end
 
-    for x = size(combinedTable, 1):-1:1  % Looping backward to avoid skipping rows
-        if isempty(combinedTable.preCSD{x}) && isempty(combinedTable.duringCSD{x}) && isempty(combinedTable.postCSD{x})
-            combinedTable(x, :) = [];  % Remove the entire row
+    for x = size(combinedTable_currentParam, 1):-1:1  % Looping backward to avoid skipping rows
+        if isempty(combinedTable_currentParam.preCSD{x}) && isempty(combinedTable_currentParam.duringCSD{x}) && isempty(combinedTable_currentParam.postCSD{x})
+            combinedTable_currentParam(x, :) = [];  % Remove the entire row
         end
     end
 
     % Store the concatenated table in the output struct
-    paramTables_allPhases.(parameter) = combinedTable;
+    paramTables_allPhases.(parameter) = combinedTable_currentParam;
 
     % use this combinedTable for prism (preCSD_allFeatures), param-by-param
-    combinedTable = table2cell(combinedTable);
+    combinedTable_currentParam = table2cell(combinedTable_currentParam);
     emptyRows = cellfun(@isempty, paramTables_allPhases.(parameter){:,2});
-    combinedTable(emptyRows, :) = [];
+    combinedTable_currentParam(emptyRows, :) = [];
 
     % Clean and Classify data into increase, decrease, noChange
     [cleanedData, classifiedData, classifiedTable.(parameter)] = processAndClassify(paramTables_allPhases.(parameter), parameter);
@@ -221,7 +211,7 @@ end
 
 %% cell count for slide 66
 
-cellType = combinedTable{:, 6}; % Extract column 6 as an array
+cellType = combinedTable_currentParam{:, 6}; % Extract column 6 as an array
 cellType = cell2mat(cellType);
 totalPerivascular = sum(cellType == 0); % Count rows with 0 or 2
 totalNonPerivascular = sum(cellType == 2);
@@ -234,7 +224,7 @@ cellType_pre_postCSD = paramTables_pre_postCSD_cleanedData.Area(:,3); % Extract 
 pre_duringCSD_totalPerivascular = sum(cellType_pre_postCSD == 0); % Count rows with 0 or 2
 pre_duringCSD_totalNonPerivascular = sum(cellType_pre_postCSD == 2);
 
-combinedTable2 = combinedTable;
+combinedTable2 = combinedTable_currentParam;
 
 for x = size(combinedTable2, 1):-1:1  % Looping backward to avoid skipping rows
     if isempty(combinedTable2.baseline_preCSD{x})
