@@ -480,14 +480,14 @@ for experiment = 1:length(sortedFileNames)
     cellPairs_edges_distanceMicron_multipleAppearance = getEdgeDistances(adjMatrix, centers_allCells, numCells, rowsWithSingleAppearance);
     cellPairs_edges_distanceMicron_multipleAppearance_all = [cellPairs_edges_distanceMicron_multipleAppearance_all; cellPairs_edges_distanceMicron_multipleAppearance];
 
-    % Save network data
-    fileTemp = extractBefore(AquA_fileName, "_AQuA2");
-    pathTemp = extractBefore(pwd, "3."); 
-    subfolderNetworkName = '4._network_propagation.mat'; % Define the subfolder name
-    subfolderNetworkPath = fullfile(pathTemp, subfolderNetworkName); % Create the full path for the subfolder
-    % Create the full file name with path
-    networkFilename = fullfile(subfolderNetworkPath, strcat(fileTemp, '_network_propagation.mat'));
-    save(networkFilename, '-v7.3');
+%     % Save network data
+%     fileTemp = extractBefore(AquA_fileName, "_AQuA2");
+%     pathTemp = extractBefore(pwd, "3."); 
+%     subfolderNetworkName = '4._network_propagation.mat'; % Define the subfolder name
+%     subfolderNetworkPath = fullfile(pathTemp, subfolderNetworkName); % Create the full path for the subfolder
+%     % Create the full file name with path
+%     networkFilename = fullfile(subfolderNetworkPath, strcat(fileTemp, '_network_propagation.mat'));
+%     %save(networkFilename, '-v7.3');
 end
 
 % Correlation - duration of events x number of simultaneous events

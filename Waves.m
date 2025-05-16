@@ -16,6 +16,9 @@ nonPerivascular = combinedTable_NM(nonPerivascular_indices,:);
 
 dFF_all = cell2mat(combinedTable_NM.dFF); % Convert to matrix
 Fs = 1.03; % Sampling frequency
+
+combinedTable_sorted = sortrows(combinedTable_NM, 'Max dFF', 'descend');
+dFF_all_sorted = cell2mat(combinedTable_sorted.dFF); % Convert to matrix
 %% Plot selected waves
 plotSelectedWaves_together(combinedTable_NM, [88, 265, 330, 451], 'my_figure.eps');
 
@@ -31,6 +34,11 @@ plot_dFF_waves(combinedTable_NM, saveFolder, false);
 % for each cell
 for w = 1:2 %size(dFF_all, 1)
     plotFFT(dFF_all(w, :), Fs);
+end
+
+for w = 1:5 %size(dFF_all, 1)
+    normalized_signal = zscore(dFF_all(w,:));
+    plotFFT(normalized_signal, Fs);
 end
 
 % for all cells
@@ -60,7 +68,7 @@ maxClusters = 10; % Test up to 10 clusters
 % Optimize Sgolay params - takes very long time to optimize both params
 poly_orders = 1:6; 
 frame_sizes = 5:2:927; 
-[best_poly_order, best_frame_size, best_snr, best_filtered_signals] = optimizeSgolayParams(dFF_all, poly_orders, frame_sizes);
+[best_poly_order, best_frame_size, best_snr, best_filtered_signals] = optimizeSgolayParams(dFF_all_sorted, poly_orders, frame_sizes);
 
 % Check best frame size
 unique_vals_frame = unique(best_frame_size);
@@ -78,39 +86,95 @@ maxClusters = 10; % Test up to 10 clusters
 poly_order = 6;  % Range of polynomial orders for Savitzky-Golay filter
 frame_size = 7;  % Frame sizes (odd numbers)
 % Assuming 'dFF_all' is your matrix of Ca2+ signals (cells x time points)
-[optimal_k, idx, features, cluster_means, count_k1, count_k2] = clusterCa2Signals(dFF_all, Fs, poly_order, frame_size, maxClusters);
+[optimal_k, idx, features, cluster_means, count_k1, count_k2] = clusterCa2Signals(dFF_all_sorted, Fs, poly_order, frame_size, maxClusters);
+
 
 
 %% check differences between clusters
 
+darkPurple = [0.5, 0, 0.5];  % Dark purple
+darkGreen = [0, 0.5, 0];  
+
+% SNR differences
+snr_1 = computeSNR(dFF_all_sorted(idx == 1,:), 'ma', 5); %'ma', 5 OR 'fft', 0.2
+snr_2 = computeSNR(dFF_all_sorted(idx == 2,:), 'ma', 5);
+% Median and IQR
+med1 = median(snr_1); 
+med2 = median(snr_2);
+iqr1 = iqr(snr_1); 
+iqr2 = iqr(snr_2);
+% Mann-Whitney U test
+[p, h, stats] = ranksum(snr_1, snr_2);
+fprintf('Mann-Whitney p = %.4f\n', p);
+% Plot
+figure;
+bar(1, med1, 'FaceColor', darkPurple); hold on;
+bar(2, med2, 'FaceColor', darkGreen);
+%bar([med1, med2], 'FaceColor', [0.2 0.6 0.8]); %'Color', colors
+% Set x-axis labels
+set(gca, 'XTick', [1 2], 'XTickLabel', {'Cluster 1', 'Cluster 2'});
+ylabel('Median SNR');
+% Error bars (IQR)
+hold on;
+errorbar([1, 2], [med1, med2], [iqr1, iqr2], '.k', 'LineWidth', 1.5);
+% Annotate p-value
+y_max = max([med1 + iqr1, med2 + iqr2]);
+text(1.5, y_max * 1.05, sprintf('Mann-Whitney p = %.4f', p),'HorizontalAlignment', 'center', 'FontSize', 12);
+hold off; box off;
+
 % cell location
 wave_location = zeros(size(idx,1), 2); % Preallocate for efficiency
 for cellIdx = 1:size(idx,1)
-    wave_location(cellIdx, :) = [idx(cellIdx), combinedTable_NM{cellIdx, "Cell location (0,perivascular;1,adjacent;2,none)"}];
+    wave_location(cellIdx, :) = [idx(cellIdx), combinedTable_sorted{cellIdx, "Cell location (0,perivascular;1,adjacent;2,none)"}];
 end
 tbl = chiSquaredTestForAssociation(wave_location);
 
 % Calculate the column sums
 colSums = sum(tbl);
 % Convert each value to a percentage of its respective column
-percentageData = (tbl ./ colSums) * 100;
+percentageDataColumn = (tbl ./ colSums) * 100;
+
+% Calculate the row sums
+rowSums = sum(tbl,2);
+% Convert each value to a percentage of its respective column
+percentageDataRow = (tbl ./ rowSums) * 100;
+
 
 % other features
 %combinedTable_NM(105,:) = [];
 clusterFeatures = table(idx, ...
-    combinedTable_NM.("Area(um2)"), ...
-    combinedTable_NM.Perimeter, ...
-    combinedTable_NM.Circularity, ...
-    combinedTable_NM.("Max dFF"), ...
-    combinedTable_NM.("Duration 10% to 10%"), ...
-    combinedTable_NM.("Number of Events"), ...
-    'VariableNames', {'Cluster', 'Area_um2', 'Perimeter', 'Circularity', 'Max_dFF', 'Duration_10to10', 'Num_Events'});
+    combinedTable_sorted.("Area(um2)"), ...
+    combinedTable_sorted.Perimeter, ...
+    combinedTable_sorted.Circularity, ...
+    combinedTable_sorted.("Max dFF"), ...
+    combinedTable_sorted.("dFF AUC"),...
+    combinedTable_sorted.("Duration 10% to 10%"), ...
+    combinedTable_sorted.("Number of Events"), ...
+    'VariableNames', {'Cluster', 'Area_um2', 'Perimeter', 'Circularity', 'Max_dFF', 'dFF AUC', 'Duration_10to10', 'Num_Events'});
 
 % Split data into two tables based on cluster assignment
 clusterFeatures_cluster1 = clusterFeatures(clusterFeatures.Cluster == 1, :);
 clusterFeatures_cluster2 = clusterFeatures(clusterFeatures.Cluster == 2, :);
 
 compareClusterFeatures(clusterFeatures, clusterFeatures_cluster1, clusterFeatures_cluster2);
+
+%number of events 
+numberOfEvents_Cluster1 = clusterFeatures_cluster1(:,"Num_Events");
+totalEvents_Cluster1 = sum(numberOfEvents_Cluster1{:,:});
+%number of events in Hz
+numberOfEvents_Cluster1_Hz = table2cell(numberOfEvents_Cluster1);
+numberOfEvents_Cluster1_Hz = cell2mat(numberOfEvents_Cluster1_Hz);
+numberOfEvents_Cluster1_Hz = numberOfEvents_Cluster1_Hz / 900;
+numberOfEvents_Cluster1_Hz_new = numberOfEvents_Cluster1_Hz * 1000;
+
+%number of events 
+numberOfEvents_Cluster2 = clusterFeatures_cluster2(:,"Num_Events");
+totalEvents_Cluster2 = sum(numberOfEvents_Cluster2{:,:});
+%number of events in Hz
+numberOfEvents_Cluster2_Hz = table2cell(numberOfEvents_Cluster2);
+numberOfEvents_Cluster2_Hz = cell2mat(numberOfEvents_Cluster2_Hz);
+numberOfEvents_Cluster2_Hz = numberOfEvents_Cluster2_Hz / 900;
+numberOfEvents_Cluster2_Hz_new = numberOfEvents_Cluster2_Hz * 1000;
 
 %%
 % Plot waves based on SNR (visual)

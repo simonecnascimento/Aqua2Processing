@@ -1,4 +1,4 @@
-function [data_byCell_all, data_byFOV_all] = calculateEventRate(paramTables_all_byCell, paramTables_all_byFOV)
+function [data_byCell_all, data_byFOV_all] = calculateEventRate(paramTables_all_byCell, paramTables_all_byFOV, durationCSDmin)
     % CALCULATEEVENTRATE Calculate event rates for cells and FOVs.
     %
     % Inputs:
@@ -11,7 +11,7 @@ function [data_byCell_all, data_byFOV_all] = calculateEventRate(paramTables_all_
     %   eventHz_byFOV - Event rates by FOV (Hz)
 
     % Convert duration to seconds
-    durationMinutes = [30, 1, 30]; % Duration in minutes for each column, column1=cellID
+    durationMinutes = [30, durationCSDmin, 30]; % Duration in minutes for each column, column1=cellID
     durationSeconds = durationMinutes * 60;
 
     % empty structures
@@ -36,8 +36,8 @@ function [data_byCell_all, data_byFOV_all] = calculateEventRate(paramTables_all_
     end
 
     % Logical conditions for classification of events
-    risingEvents = data_byCell_all(:, 3) > 1.25 * data_byCell_all(:, 2);
-    decreasingEvents = data_byCell_all(:, 3) < 0.75 * data_byCell_all(:, 2);
+    risingEvents = data_byCell_all(:, 3) > 2 * data_byCell_all(:, 2);
+    decreasingEvents = data_byCell_all(:, 3) < 0.5 * data_byCell_all(:, 2);
     noChangeEvents = ~(risingEvents | decreasingEvents);
     
     % Initialize a column for trends as a cell array to store strings
@@ -68,8 +68,8 @@ function [data_byCell_all, data_byFOV_all] = calculateEventRate(paramTables_all_
     data_byFOV_all = eventHz_byFOV;
 
     % Logical conditions for classification of events
-    risingFOV = data_byFOV_all(:, 2) > 1.25 * data_byFOV_all(:, 1);
-    decreasingFOV = data_byFOV_all(:, 2) < 0.75 * data_byFOV_all(:, 1);
+    risingFOV = data_byFOV_all(:, 2) > 2 * data_byFOV_all(:, 1);
+    decreasingFOV = data_byFOV_all(:, 2) < 0.5 * data_byFOV_all(:, 1);
     noChangeFOV = ~(risingFOV | decreasingFOV);
     
     % Initialize a column for trends as a cell array to store strings

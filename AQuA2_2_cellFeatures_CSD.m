@@ -3,6 +3,7 @@
 clear all;
 
 experiment = input('CSD or BIBN-CSD?: ', 's');  % 's' means input as string
+durationCSDmin = input('Enter duration of duringCSD in minutes (1 or 2): ');
 
 if strcmp(experiment, 'CSD')
     fullCraniotomyCSDDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\0.49resolution_correct\3._analysisByEvent.mat';  
@@ -62,8 +63,6 @@ eventsByCell_all = [];
 eventsDelays = [];
 columnsToMedian_all = [];
 
-durationCSDmin = input('Enter duration of duringCSD in minutes (1 or 2): ');
-
 % Loop through each file
 for file = 1:length(sortedFileNames)
 
@@ -84,7 +83,6 @@ for file = 1:length(sortedFileNames)
         fixes(13) = {[3, 102; 3, 103; 3, 108]};
     end
 
-    
     % Apply if any fix exists for the file
     if isKey(fixes, file)
         coords = fixes(file);
@@ -114,7 +112,8 @@ for file = 1:length(sortedFileNames)
     if durationCSDmin == 1
         % 1min duringCSD
         duringCSD_frames = [1855, 1917]; % ~62 frames (60 sec)
-        postCSD_frames = [1918, 3772];
+        postCSD_frames = [1918, 3772]; %30min
+        %postCSD_frames = [1918, 4699]; % 45min
     elseif durationCSDmin == 2
         % 2min duringCSD
         duringCSD_frames = [1855, 1979]; % ~124 frames (120 sec)
@@ -158,8 +157,12 @@ paramTables_during_postCSD_cleanedData = struct();
 classifications = struct();
 
 % Directory to save the CSV files
-outputDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick';
-%outputDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\BIBN';
+
+if strcmp(experiment, 'CSD')
+    outputDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick';
+elseif strcmp(experiment, 'BIBN-CSD')
+    outputDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\BIBN';
+end
 
 for param = 1:length(parameters)
     parameter = parameters{param};
@@ -181,7 +184,8 @@ for param = 1:length(parameters)
     end
 
     % Store the concatenated table in the output struct
-    paramTables_allPhases.(parameter) = combinedTable_currentParam;
+    load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\0.49resolution_correct\combinedTable_clusters.mat');
+    paramTables_allPhases.(parameter) = [combinedTable_currentParam, table(combinedTable_clusters.clusterID, 'VariableNames', {'clusterID'})];
 
     % use this combinedTable for prism (preCSD_allFeatures), param-by-param
     combinedTable_currentParam = table2cell(combinedTable_currentParam);
@@ -206,8 +210,10 @@ for param = 1:length(parameters)
     %writetable(classifiedTable.(parameter).during_postCSD, fullfile(outputDir, [parameter '_during_postCSD.csv']));
 
     %savePath = extractBefore(fullCraniotomyCSDDir, '\3.');
-    %plotCSDBoxplots(paramTables_allPhases_cleanedData, parameter, savePath);
+    %plotCSDBoxplots(paramTables_allPhases_cleanedData, parameter, outputDir);
 end
+
+
 
 %% cell count for slide 66
 

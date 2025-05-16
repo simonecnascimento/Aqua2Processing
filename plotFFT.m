@@ -11,7 +11,7 @@ function plotFFT(signal, Fs)
     % Compute the FFT
     L = length(signal);  % Length of signal
     Y = fft(signal);     % Compute FFT
-    P2 = abs(Y/L);       % Normalize magnitude
+    P2 = abs(Y/L).^2;       % Normalize magnitude
     P1 = P2(1:L/2+1);    % Take only first half (positive frequencies)
     P1(2:end-1) = 2*P1(2:end-1);  % Adjust magnitude for single-sided spectrum
     
@@ -22,7 +22,7 @@ function plotFFT(signal, Fs)
     figure;
     plot(f, P1, 'b', 'LineWidth', 1.5);
     xlabel('Frequency (Hz)');
-    ylabel('Amplitude');
+    ylabel('power (a.u.)');
     title('Frequency Spectrum');
     grid on;
 end

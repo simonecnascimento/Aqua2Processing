@@ -26,10 +26,10 @@ function [p_values, chi2_stats] = chi_square_plot(directionCounts)
         end
     end
 
-    rowLabels = {'Perivascular', 'Non-perivascular'};
-    colLabels = ["↑↑", "↑→", "↑↓", "→↑", "→→", "→↓", "↓↑", "↓→", "↓↓"];
-
-    residuals = (directionCounts - expected) ./ sqrt(expected);
+%     rowLabels = {'Perivascular', 'Non-perivascular'};
+%     colLabels = ["↑↑", "↑→", "↑↓", "→↑", "→→", "→↓", "↓↑", "↓→", "↓↓"];
+% 
+%     residuals = (directionCounts - expected) ./ sqrt(expected);
 
 %     % Plot mosaic-like figure
 %     figure;

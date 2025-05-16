@@ -1,73 +1,201 @@
 %% create clusters based on preCSD x duringCSD and preCSD x postCSD response
+clear all;
 
-load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\0.49resolution_correct\eventHz_byCell.mat');
-load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\0.49resolution_correct\combinedTable_CSD.mat');
+experiment = input('CSD or BIBN-CSD?: ', 's');  % 's' means input as string
+durationCSDmin = input('Enter duration of duringCSD in minutes (1 or 2): ');
 
-% fix mismatch due to postCSD timeframe crop
-toRemove = [22,23,40,80,81,90,100,129,143,144,145,214,215,216,233,248,249,250];
-combinedTable_complete(toRemove, :) = [];
-
-% Extract cell types and cluster CSD events
-cellTypes = combinedTable_complete{:, 13};
-
-cells = ["cells"; "perivascular"; "non-perivascular"];
-[directions, directionCounts, clusterID, rates_mHz] = clusterWaves_CSD(eventHz_byCell, cellTypes);
-clusters = [directions; directionCounts];
-clusters = [clusters, cells];
-
-combinedTable_clusters = addvars(combinedTable_complete, clusterID, 'NewVariableNames', 'clusterID');
-
-%create heatmap
-plotClusterHeatmap(combinedTable_clusters, 17, 15, [2, 9]);
-
-% Convert counts from strings to numbers
-perivascularCounts = str2double(clusters(2, 1:9));
-perivascularTotal = sum(perivascularCounts);
-perivascularPercentage = perivascularCounts/perivascularTotal;
-
-nonPerivascularCounts = str2double(clusters(3, 1:9));
-nonPerivascularTotal = sum(nonPerivascularCounts);
-nonPerivascularPercentage = nonPerivascularCounts/nonPerivascularTotal;
-
-%percentage
-clustersPercentage = [directions; perivascularPercentage; nonPerivascularPercentage];
-clustersPercentage = [clustersPercentage, cells];
-clustersPercentage2 = [perivascularPercentage; nonPerivascularPercentage];
-clustersPercentage2 = clustersPercentage2 * 100;
-
-% Round to the nearest integer
-roundedData = round(clustersPercentage2);
-
-% Ensure the sum of each row is 100
-for i = 1:size(roundedData, 1)
-    rowSum = sum(roundedData(i, :));
-    diff = 100 - rowSum;  % Find the difference from 100
-    
-    % If the sum isn't 100, adjust the values slightly
-    if diff ~= 0
-        [~, idx] = max(abs(roundedData(i, :)));  % Find the largest value
-        roundedData(i, idx) = roundedData(i, idx) + diff;  % Adjust the largest value
+if strcmp(experiment, 'CSD')
+    load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\0.49resolution_correct\AQuA2_data_fullCraniotomy_CSD.mat');
+    if durationCSDmin == 1
+        toRemove = [22,23,40,80,81,90,100,129,143,144,145,214,215,216,233,248,249,250];
+        combinedTable_complete(toRemove, :) = [];
+    elseif durationCSDmin == 2
+        toRemove = [22,23,40,80,81,100,129,144,145,214,215,216,233,248,249,250];
+        combinedTable_complete(toRemove, :) = [];
+    end
+elseif strcmp(experiment, 'BIBN-CSD')
+    if durationCSDmin == 1
+        load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\BIBN\AQuA2_data_fullCraniotomy_BIBN-CSD_1min-duringCSD.mat');
+        toRemove = 43;
+        combinedTable_complete(toRemove, :) = [];
+    elseif durationCSDmin == 2
+        load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\BIBN\AQuA2_data_fullCraniotomy_BIBN-CSD_2min-duringCSD.mat');
+        toRemove = 43; %same as 1min-duringCSD
+        combinedTable_complete(toRemove, :) = [];
     end
 end
 
-% Create figure
-figure;
-% Perivascular pie chart
-subplot(1, 2, 1);
-pie(perivascularPercentage, directions);
-title('Perivascular Cells');
-% Non-perivascular pie chart
-subplot(1, 2, 2);
-pie(nonPerivascularPercentage, directions);
-title('Non-Perivascular Cells');
+%% Cluster 9x2 (up, none, down - acute & chronic) - CLUSTER BY EVENT RATE
 
-% Chi-square
-[p_values, chi2_stats] = chi_square_plot(directionCounts);
+% Extract cell types and cluster CSD events
+cellTypes = combinedTable_complete{:, 13};
+cells = ["cells"; "perivascular"; "non-perivascular"];
+[eventRate_directions, eventRate_directionCounts, eventRate_directionLabels, eventRate_clusterID, rates_mHz] = clusterWaves_CSD(eventHz_byCell, cellTypes);
+eventRate_clusters = [eventRate_directions; eventRate_directionCounts];
+eventRate_clusters = [eventRate_clusters, cells];
 
+combinedTable_clusters = addvars(combinedTable_complete, eventRate_clusterID, 'NewVariableNames', 'eventRate_clusterID');
+
+% Chi-square - comparing the distribution between perivascular vs non-perivascular for each cluster
+[p_values_byCluster, stats_byCluster] = chi_square_plot(eventRate_directionCounts);
+
+% Run Chi-square test of independence - testing whether cluster and cell type are independent
+[~, p_values_All, stats_All] = chi2gof_from_table(eventRate_directionCounts);
+
+% Chi-square test by ACUTE response
+[p_values_Acute, stats_Acute] = chi_square_by_acuteResponse(eventRate_directionCounts, 3);
+
+% Chi-square test by CHRONIC response
+[p_values_Chronic, stats_Chronic] = chi_square_by_chronicResponse(eventRate_directionCounts);
+
+% Plot heatmap of conditional probabilities (3x3)
+[All_matrix, P_matrix, NP_matrix] = plotConditionalProbabilities(eventRate_directionCounts, outputDir);
+
+% Distributions 
+% Plot distribution Cell type x Cluster
+[clustersPercentage, roundedData] = plotClusterDistributionByCellType(eventRate_clusters, eventRate_directions, cells, outputDir);
+
+% Plot distribution clusters x FOV
+plotFOVDistributionByCluster(combinedTable_clusters, outputDir);
+
+% Plot distribution FOV x cluster
+plotClusterDistributionByFOV(combinedTable_clusters, outputDir);
+
+%create heatmap
+plotClusterHeatmap_FOVnormalized(combinedTable_clusters, [1:9], sortedFileNames, outputDir); %[1,2, 5:9] BIBN by FOV
+plotClusterHeatmap_zscore(combinedTable_clusters, [2,1,4,7,3,6,9], outputDir);
+
+% stacked bars
+probs = compute_Clusterwise_probabilities(eventRate_directionCounts);
+plotStackedDirectionGroups(eventRate_directionCounts, outputDir)
+
+%% CLUSTER BY dFF
+
+[dFF_directions, dFF_directionCounts, dFF_directionLabels, dFF_clusterID, phaseParams_dFF] = clusterParams_CSD(paramTables_allPhases, cellTypes);
+dFF_clusters = [dFF_directions; dFF_directionCounts];
+dFF_clusters = [dFF_clusters, cells];
+
+combinedTable_clusters = addvars(combinedTable_clusters, dFF_clusterID, 'NewVariableNames', 'dFF_clusterID');
+
+% Convert vectors to tables
+T_eventRate = table(eventRate_clusterID, 'VariableNames', {'eventRate_clusterID'});
+T_dFF = table(dFF_clusterID, 'VariableNames', {'dFF_clusterID'});
+
+clustersTable = [T_eventRate, T_dFF, phaseParams_dFF];
+
+% chronic increase
+chronicIncrease_cluster = [];
+for cellCluster = 1:size(phaseParams_dFF, 1)
+    clusterID = clustersTable.eventRate_clusterID(cellCluster);
+    
+    if ismember(clusterID, [1 4 7])
+        currentCell_dFF = phaseParams_dFF(cellCluster, :);  % row vector
+        chronicIncrease_cluster = [chronicIncrease_cluster; currentCell_dFF];  % vertically concatenate
+    end
+end
+
+% acute increase
+acuteIncrease_cluster = [];
+for cellCluster = 1:size(phaseParams_dFF, 1)
+    clusterID = clustersTable.eventRate_clusterID(cellCluster);
+    
+    if ismember(clusterID, 2)
+        currentCell_dFF = phaseParams_dFF(cellCluster, :);  % row vector
+        acuteIncrease_cluster = [acuteIncrease_cluster; currentCell_dFF];  % vertically concatenate
+    end
+end
+
+
+% 
+% figure;
+% for i = 1:3
+%     % Extract the column, which is a cell array of numeric scalars or empty
+%     cellColumn = allCells_cluster{:, i};  % this is a cell array
+%     
+%     % Convert the cell array to a numeric array by unwrapping each element
+%     % Assume each cell contains a scalar numeric value or empty, replace empty with 0
+%     numericColumn = zeros(size(cellColumn));
+%     for k = 1:numel(cellColumn)
+%         if isempty(cellColumn{k})
+%             numericColumn(k) = 0;
+%         else
+%             numericColumn(k) = cellColumn{k};
+%         end
+%     end
+%     
+%     subplot(1, 3, i);
+%     histogram(numericColumn);
+% end
+% 
+% medians = zeros(1, 3);
+% iqrs = zeros(1, 3);
+% 
+% for i = 1:3
+%     cellColumn = allCells_cluster{:, i};  % cell array
+%     numericColumn = zeros(size(cellColumn));
+%     
+%     for k = 1:numel(cellColumn)
+%         if isempty(cellColumn{k})
+%             numericColumn(k) = 0;
+%         else
+%             numericColumn(k) = cellColumn{k};
+%         end
+%     end
+%     
+%     medians(i) = median(numericColumn);
+%     iqrs(i) = iqr(numericColumn);
+% end
+% 
+% % Display results
+% for i = 1:3
+%     fprintf('Column %d: Median = %.4f, IQR = %.4f\n', i, medians(i), iqrs(i));
+% end
+
+
+
+
+%% Cluster 3x2 (up, none, down - acute & chronic)
+
+cellTypes = combinedTable_complete{:, 13};
+cells = ["cells"; "P"; "NP"];
+[directions, acuteLabels, chronicLabels, acuteIDs, chronicIDs, acuteCounts, chronicCounts, rates_mHz] = clusterWaves_CSD_acute_chronic(eventHz_byCell, cellTypes);
+
+clustersAcute = [directions; acuteCounts];
+clustersAcute = [clustersAcute, cells];
+clustersChronic = [directions; chronicCounts];
+clustersChronic = [clustersChronic, cells];
+
+combinedTable_clustersAcute = addvars(combinedTable_complete, acuteIDs, 'NewVariableNames', 'acuteIDs');
+combinedTable_clustersChronic = addvars(combinedTable_complete, chronicIDs, 'NewVariableNames', 'chronicIDs');
+
+% Chi-square - comparing the distribution between perivascular vs non-perivascular for each cluster
+[p_values_byCluster_acute, stats_byCluster_acute] = chi_square_plot(acuteCounts);
+[p_values_byCluster_chronic, stats_byCluster_chronic] = chi_square_plot(chronicCounts);
+
+% Run Chi-square test of independence - testing whether cluster and cell type are independent
+[~, p_values_All_acute, stats_All_acute] = chi2gof_from_table(acuteCounts);
+[~, p_values_All_chronic, stats_All_chronic] = chi2gof_from_table(chronicCounts);
+
+% Distribution Cell type x Cluster 
+[clustersPercentage_acute, roundedData_acute] = plotClusterDistributionByCellType(clustersAcute, directions, cells, outputDir);
+figure; bar(roundedData_acute,'stacked','DisplayName','roundedData_acute')
+legend(directions); xticklabels(cells(2:3)); title('Acute response by cell type')
+
+[clustersPercentage_chronic, roundedData_chronic] = plotClusterDistributionByCellType(clustersChronic, directions, cells, outputDir);
+figure; bar(roundedData_chronic,'stacked','DisplayName','roundedData_chronic')
+legend(directions); xticklabels(cells(2:3)); title('Chronic response by cell type')
+
+% Heatmaps ACUTE vs CHRONIC
+plotClusterHeatmap_zscore(combinedTable_clustersAcute, 1:2);
+plotClusterHeatmap_zscore(combinedTable_clustersChronic, 1:2);
+ 
+% Compare baseline between chronic clusters %1,4,7x3,6,9
+preHz = str2double(eventHz_byCell(:, 2));
+preHz_cluster = [preHz, combinedTable_clusters.clusterID];
+compareBaselineRates(preHz, acuteIDs, chronicIDs)
 
 
 %%
-
 load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\0.49resolution_correct\AQuA2_data_fullCraniotomy_CSD.mat')
 cellLocation_indices = combinedTable{:,13};
 redLabel_indices = combinedTable{:,14};

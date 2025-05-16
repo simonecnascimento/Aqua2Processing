@@ -22,7 +22,8 @@ function cleanDataDistances_um = cellPairsDistanceDistribution(allUpperTriValues
     
     % Remove NaN values from the combined data
     cleanDataDistances_um = allValuesDistances_um(~isnan(allValuesDistances_um));
-    
+    cleanDataDistances_um_unique = unique(cleanDataDistances_um);   
+
     % Plot the histogram of the cleaned data
     figure;
     histogram(cleanDataDistances_um);

@@ -2,44 +2,67 @@
 
 clear all;
 
-% Set the directory for the experiment you need
-%fullCraniotomyBaselineDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\3._analysisByEvent.mat';
-fullCraniotomyCSDDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\3._analysisByEvent.mat';
-% thinBoneBaselineDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\thinBone\_analysisByEvent.mat';
+experiment = input('CSD or BIBN-CSD?: ', 's');  % 's' means input as string
 
-cd (fullCraniotomyCSDDir);
-% Get all .mat files in the directory
-FilesAll = dir(fullfile(fullCraniotomyCSDDir, '*_analysisByEvent.mat')); 
-
-% Extract file names
-fileNames = {FilesAll.name};
-
-% Initialize an array to store the extracted parts for sorting
-sortKey = [];
-
-% Loop through all filenames to extract the parts for sorting
-for file = 1:length(fileNames)
-    filename = fileNames{file};
-    
-    % Extract the number after "Pf4Ai162-" (e.g., '2' from 'Pf4Ai162-2')
-    numberAfterPrefix = sscanf(filename, 'Pf4Ai162-%d', 1);
-    
-    % Extract the date (e.g., '221130' from 'Pf4Ai162-2_221130_FOV6')
-    dateStr = regexp(filename, '\d{6}', 'match', 'once');
-    
-    % Extract the FOV number (e.g., 'FOV6' from 'Pf4Ai162-2_221130_FOV6')
-    fovNumber = sscanf(filename, 'Pf4Ai162-%*d_%*d_FOV%d', 1);
-    
-    % Store the extracted values in a matrix for sorting
-    sortKey = [sortKey; numberAfterPrefix, str2double(dateStr), fovNumber];
+if strcmp(experiment, 'CSD')
+    fullCraniotomyCSDDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\0.49resolution_correct\3._analysisByEvent.mat';  
+    directory = fullCraniotomyCSDDir;
+elseif strcmp(experiment, 'BIBN-CSD')
+    fullCraniotomyBIBNDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\BIBN\3._analysisByEvent.mat';
+    directory = fullCraniotomyBIBNDir;
 end
 
-% Sort by the three columns: numberAfterPrefix, date, fovNumber
-[~, idx] = sortrows(sortKey);
-sortedFileNames = fileNames(idx);
+% Get all .mat files in the directory and sort names
+cd(directory);
+FilesAll = dir(fullfile(directory, '*_analysisByEvent.mat')); 
+fileNames = {FilesAll.name};
+sortedFileNames = sortFileNames(fileNames);
 
 % Initialize an empty table
 networkTable_all = table();
+% 
+% 
+% clear all;
+% 
+% % Set the directory for the experiment you need
+% %fullCraniotomyBaselineDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\3._analysisByEvent.mat';
+% fullCraniotomyCSDDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\3._analysisByEvent.mat';
+% % thinBoneBaselineDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\thinBone\_analysisByEvent.mat';
+% 
+% 
+% cd (fullCraniotomyCSDDir);
+% % Get all .mat files in the directory
+% FilesAll = dir(fullfile(fullCraniotomyCSDDir, '*_analysisByEvent.mat')); 
+% 
+% % Extract file names
+% fileNames = {FilesAll.name};
+% 
+% % Initialize an array to store the extracted parts for sorting
+% sortKey = [];
+% 
+% % Loop through all filenames to extract the parts for sorting
+% for file = 1:length(fileNames)
+%     filename = fileNames{file};
+%     
+%     % Extract the number after "Pf4Ai162-" (e.g., '2' from 'Pf4Ai162-2')
+%     numberAfterPrefix = sscanf(filename, 'Pf4Ai162-%d', 1);
+%     
+%     % Extract the date (e.g., '221130' from 'Pf4Ai162-2_221130_FOV6')
+%     dateStr = regexp(filename, '\d{6}', 'match', 'once');
+%     
+%     % Extract the FOV number (e.g., 'FOV6' from 'Pf4Ai162-2_221130_FOV6')
+%     fovNumber = sscanf(filename, 'Pf4Ai162-%*d_%*d_FOV%d', 1);
+%     
+%     % Store the extracted values in a matrix for sorting
+%     sortKey = [sortKey; numberAfterPrefix, str2double(dateStr), fovNumber];
+% end
+% 
+% % Sort by the three columns: numberAfterPrefix, date, fovNumber
+% [~, idx] = sortrows(sortKey);
+% sortedFileNames = fileNames(idx);
+% 
+% % Initialize an empty table
+% networkTable_all = table();
 
 %% extract network spatial density
 
@@ -171,7 +194,7 @@ for experiment = 1:length(sortedFileNames)
     % Iterate over each set
     for phase = 1:3
         % Select the current networkData and events
-        currentNetworkData = eval(networkDataSets{phase});
+        networkData = eval(networkDataSets{phase}); %currentNetworkData
         phaseEvents = eventsSets{phase};
     
         % Process the data (your code to manipulate currentNetworkData)
@@ -181,25 +204,25 @@ for experiment = 1:length(sortedFileNames)
     
                 % find the propagation matrix related to the current event
                 propagationMap_event = data_aqua.res.riseLst1{1, currentEvent}.dlyMap50;
-                currentNetworkData.propagationMap_event{currentEvent} = propagationMap_event;
+                networkData.propagationMap_event{currentEvent} = propagationMap_event;
             
                 % find the cell related to the current event
                 cellNumber_event = find(cellfun(@(c) any(c == currentEvent), data_CFU.cfuInfo1(:, 2)));
-                currentNetworkData.cellNumber_event{currentEvent} = cellNumber_event;
+                networkData.cellNumber_event{currentEvent} = cellNumber_event;
         
                 % find if cell is perivascular or nonPerivascular
                 if ismember(cellNumber_event,data_analysis.perivascularCells)
-                    currentNetworkData.cellType_event{currentEvent} = 0;
+                    networkData.cellType_event{currentEvent} = 0;
                 else
-                    currentNetworkData.cellType_event{currentEvent} = 2;
+                    networkData.cellType_event{currentEvent} = 2;
                 end
         
                 % Get map of the cell of current event
                 cellMap_event = data_CFU.cfuInfo1{cellNumber_event, 3};
-                currentNetworkData.cellMap_event{currentEvent} = cellMap_event;
+                networkData.cellMap_event{currentEvent} = cellMap_event;
              
                 % Find list of all simultaneous events related to that event and fill up simultaneousMatrix
-                simultaneousEvents_current = currentNetworkData.simultaneousEvents_all{currentEvent};
+                simultaneousEvents_current = networkData.simultaneousEvents_all{currentEvent};
 
              
                 for a = 1:length(simultaneousEvents_current)
@@ -211,16 +234,16 @@ for experiment = 1:length(sortedFileNames)
                     else
                         % find the propagation matrix map related to the simultaneous event
                         propagationMap_all = data_aqua.res.riseLst1{1, simultaneousEvent}.dlyMap50;
-                        currentNetworkData.propagationMap_all{currentEvent}{end+1} = propagationMap_all;
+                        networkData.propagationMap_all{currentEvent}{end+1} = propagationMap_all;
                         
                         % Find the cell of the specific event
                         cellNumber_all = find(cellfun(@(c) any(c == simultaneousEvent), data_CFU.cfuInfo1(:, 2)));
             
                         if ~isempty(cellNumber_all)
-                            if isempty(currentNetworkData.cellNumber_all{currentEvent})
-                                currentNetworkData.cellNumber_all{currentEvent} = cellNumber_all;
+                            if isempty(networkData.cellNumber_all{currentEvent})
+                                networkData.cellNumber_all{currentEvent} = cellNumber_all;
                             else
-                                currentNetworkData.cellNumber_all{currentEvent} = [currentNetworkData.cellNumber_all{currentEvent}, cellNumber_all];
+                                networkData.cellNumber_all{currentEvent} = [networkData.cellNumber_all{currentEvent}, cellNumber_all];
                             end
                         end
                         
@@ -232,15 +255,15 @@ for experiment = 1:length(sortedFileNames)
                         end
                         
                         % populate networkData table
-                        if isempty(currentNetworkData.cellType_all{currentEvent})
-                           currentNetworkData.cellType_all{currentEvent} = cellType_all;
+                        if isempty(networkData.cellType_all{currentEvent})
+                           networkData.cellType_all{currentEvent} = cellType_all;
                         else
-                            currentNetworkData.cellType_all{currentEvent} = [currentNetworkData.cellType_all{currentEvent}, cellType_all];
+                            networkData.cellType_all{currentEvent} = [networkData.cellType_all{currentEvent}, cellType_all];
                         end
             
                         % Find the map of the simultaneousEvent to the cell array
                         cellMap_all = data_CFU.cfuInfo1{cellNumber_all, 3};
-                        currentNetworkData.cellMap_all{currentEvent}{end+1} = cellMap_all;  
+                        networkData.cellMap_all{currentEvent}{end+1} = cellMap_all;  
             
             %             % Plot image of propagation within cell map
             %             [networkData, newTempMap] = propagationCellMap(networkData, currentEvent, a);
@@ -328,17 +351,17 @@ for experiment = 1:length(sortedFileNames)
             simultaneousEvents_network = simultaneousEvents_current; %duplicate 
             simultaneousEvents_network(simultaneousEvents_current == currentEvent) = [];
             % Update the networkData table with the modified list
-            currentNetworkData.simultaneousEvents_network{currentEvent} = simultaneousEvents_network;
+            networkData.simultaneousEvents_network{currentEvent} = simultaneousEvents_network;
     
             % Duplicate events
             simultaneousEvents_network_corrected = simultaneousEvents_network;
-            currentNetworkData.simultaneousEvents_network_corrected{currentEvent} = simultaneousEvents_network_corrected;
+            networkData.simultaneousEvents_network_corrected{currentEvent} = simultaneousEvents_network_corrected;
               
             % Check if any elements in simultaneousEvents_network_corrected needs to be deleted
             if any(ismember(simultaneousEvents_network_corrected, data_analysis.cols_to_delete))
                 % Keep only elements that are not in cols_to_delete
                 simultaneousEvents_network_corrected = simultaneousEvents_network_corrected(~ismember(simultaneousEvents_network_corrected, data_analysis.cols_to_delete));
-                currentNetworkData.simultaneousEvents_network_corrected{currentEvent} = simultaneousEvents_network_corrected;
+                networkData.simultaneousEvents_network_corrected{currentEvent} = simultaneousEvents_network_corrected;
             end
     
             % Initialize an array to store indices of simultaneousEvents to remove
@@ -356,16 +379,16 @@ for experiment = 1:length(sortedFileNames)
     
                 % find the propagation matrix related to the current event
                 propagationMap_network = data_aqua.res.riseLst1{1, simultaneousEvent_network_corrected}.dlyMap50;
-                currentNetworkData.propagationMap_network{currentEvent}{end+1} = propagationMap_network;
+                networkData.propagationMap_network{currentEvent}{end+1} = propagationMap_network;
     
                 % Find the cell of the specific event
                 cellNumber_network = find(cellfun(@(c) any(c == simultaneousEvent_network_corrected), data_CFU.cfuInfo1(:, 2)));
     
                 if ~isempty(cellNumber_network)
-                    if isempty(currentNetworkData.cellNumber_network{currentEvent})
-                        currentNetworkData.cellNumber_network{currentEvent} = cellNumber_network;
+                    if isempty(networkData.cellNumber_network{currentEvent})
+                        networkData.cellNumber_network{currentEvent} = cellNumber_network;
                     else
-                        currentNetworkData.cellNumber_network{currentEvent} = [currentNetworkData.cellNumber_network{currentEvent}, cellNumber_network];
+                        networkData.cellNumber_network{currentEvent} = [networkData.cellNumber_network{currentEvent}, cellNumber_network];
                     end
                 end
     
@@ -377,50 +400,50 @@ for experiment = 1:length(sortedFileNames)
                 end
     
                 % populate networkData table
-                if isempty(currentNetworkData.cellType_network{currentEvent})
-                   currentNetworkData.cellType_network{currentEvent} = cellType_network;
+                if isempty(networkData.cellType_network{currentEvent})
+                   networkData.cellType_network{currentEvent} = cellType_network;
                 else
-                    currentNetworkData.cellType_network{currentEvent} = [currentNetworkData.cellType_network{currentEvent}, cellType_network];
+                    networkData.cellType_network{currentEvent} = [networkData.cellType_network{currentEvent}, cellType_network];
                 end
                 
                 % Check if the cellMap entry for simultaneousEvent is empty and initialize if needed
-                if isempty(currentNetworkData.cellMap_network{currentEvent})
+                if isempty(networkData.cellMap_network{currentEvent})
                     % Initialize networkData.cellMap{currentEvent} as a cell array of size 1x1
-                    currentNetworkData.cellMap_network{currentEvent} = {};
+                    networkData.cellMap_network{currentEvent} = {};
                 end
     
                 % Find the map of the simultaneousEvent to the cell array
                 cellMap_network = data_CFU.cfuInfo1{cellNumber_network, 3};
-                currentNetworkData.cellMap_network{currentEvent}{end+1} = cellMap_network;
+                networkData.cellMap_network{currentEvent}{end+1} = cellMap_network;
             end
             
             % Remove the indices in reverse order to avoid out of range errors
             for i = length(indicesToRemove):-1:1
-                currentNetworkData.simultaneousEvents_network_corrected{currentEvent}(indicesToRemove(i)) = [];
+                networkData.simultaneousEvents_network_corrected{currentEvent}(indicesToRemove(i)) = [];
             end
     
             % Combine cell maps
-            [currentNetworkData, combinedMatrix, pairwiseDistances] = combineCellMaps(currentNetworkData, currentEvent);
+            [networkData, combinedMatrix, pairwiseDistances] = combineCellMaps(networkData, currentEvent);
 
             else         
                 % Loop through each column and set the corresponding value to an appropriate empty value
-                for col = 1:width(currentNetworkData)
-                    colType = class(currentNetworkData{currentEvent, col});  % Get the type of the column content
+                for col = 1:width(networkData)
+                    colType = class(networkData{currentEvent, col});  % Get the type of the column content
                 
                     % Replace with an empty value based on column type
                     if strcmp(colType, 'double')
-                        currentNetworkData{currentEvent, col} = NaN;
+                        networkData{currentEvent, col} = NaN;
                     elseif strcmp(colType, 'uint16')
-                        currentNetworkData{currentEvent, col} = uint16([]);  % Set to an empty uint16 array
+                        networkData{currentEvent, col} = uint16([]);  % Set to an empty uint16 array
                     elseif strcmp(colType, 'cell')
-                        currentNetworkData{currentEvent, col} = {[]};  % Set to an empty cell array
+                        networkData{currentEvent, col} = {[]};  % Set to an empty cell array
                     end
                 end
             end
         end
 
         % Update the cell array with the processed table
-        networkDataSets{phase} = currentNetworkData;
+        networkDataSets{phase} = networkData;
     
 %         % Assign each table back to its variable
 %         networkData_preCSD = networkDataSets{1};
@@ -429,7 +452,7 @@ for experiment = 1:length(sortedFileNames)
     
         % Get distribution of distances between pair of cells
         % Extract the relevant column
-        shortestDistanceBetweenCenters = currentNetworkData.shortestDistanceBetweenCenters;
+        shortestDistanceBetweenCenters = networkData.shortestDistanceBetweenCenters;
         
         % Initialize an array to store the averages of the upper triangular values
         upperTriAverages = [];
@@ -487,7 +510,7 @@ for experiment = 1:length(sortedFileNames)
         % Get events duration and simultaneous events
         eventDuration = table2cell(data_analysis.resultsRaw("Curve - Duration 10% to 10%","ftsTb"));
         eventDuration = eventDuration{1,1}';
-        simultaneousEvents_experiment = currentNetworkData.simultaneousEvents_network_corrected(:);
+        simultaneousEvents_experiment = networkData.simultaneousEvents_network_corrected(:);
         eventDuration_simultaneousEvents = [eventDuration,simultaneousEvents_experiment]; 
         eventDuration_simultaneousEvents_all{experiment} = eventDuration_simultaneousEvents; % Store values for this experiment
         % remove cols_to_delete from analysis

@@ -1,21 +1,62 @@
-function [cleanedData, classifiedData, classifiedTable] = processAndClassify(inputTable)
+function [cleanedData, classifiedData, classifiedTable] = processAndClassify(inputTable, parameter)
     % Extract relevant columns
-    myTable_all = inputTable(:, 2:6);
+    myTable_all = inputTable(:, 2:7);
 
-    % Replace empty cells with NaN
+%     % Replace empty cells with NaN
+%     for i = 1:width(myTable_all)
+%         if iscell(myTable_all{:, i})
+%             emptyRows = cellfun(@(x) isempty(x) || isequal(size(x), [0 0]), myTable_all{:, i});
+%             myTable_all{emptyRows, i} = {NaN};
+%         end
+%     end
+
+    
+    % Replace empty cells with 0
     for i = 1:width(myTable_all)
         if iscell(myTable_all{:, i})
             emptyRows = cellfun(@(x) isempty(x) || isequal(size(x), [0 0]), myTable_all{:, i});
-            myTable_all{emptyRows, i} = {NaN};
+            myTable_all{emptyRows, i} = {0};
         end
     end
 
+
+%     if strcmp(parameter, 'NumberOfEvents')
+%         % Convert table to numeric array
+%         eventCounts = table2cell(myTable_all);
+%         eventCounts = cell2mat(eventCounts);  % Nx4 numeric matrix
+%     
+%         % Phase durations in seconds
+%         durations = [1800, 60, 1800, 900, 1e3];
+%     
+%         % Expand durations to match number of rows
+%         durationsMatrix = repmat(durations, size(eventCounts, 1), 1);
+%     
+%         % Compute Hz and µHz
+%         eventHz = eventCounts ./ durationsMatrix;
+%         myTable_all = eventHz * 1e3; %event_mHz
+%         myTable_all = mat2cell(myTable_all);
+%         myTable_all = cell2table(myTable_all);
+%     end
+
+    if strcmp(parameter, 'NumberOfEvents')
+        durations = [1800, 60, 1800, 900, 1e3];
+    
+        % Extract cell contents and convert to numeric
+        data = cell2mat(myTable_all{:,:});  % Nx5 numeric matrix
+    
+        % Compute event rate in mHz
+        data = (data ./ durations) * 1e3;
+    
+        % Optionally: put it back into the table
+        myTable_all{:,:} = num2cell(data);
+    end
+
     % Create phase-specific tables
-    myTable_allPhases = myTable_all(:, [1,2,3,5]); %
-    myTable_pre_duringCSD = myTable_all(:, [1, 2, 5]);
-    myTable_pre_postCSD = myTable_all(:, [1, 3, 5]);
-    myTable_during_postCSD = myTable_all(:, [2, 3, 5]);
-    myTable_baseline_preCSD = myTable_all(:, [4, 5]);
+    myTable_allPhases = myTable_all(:, [1,2,3,5,6]); %
+    myTable_pre_duringCSD = myTable_all(:, [1, 2, 5, 6]);
+    myTable_pre_postCSD = myTable_all(:, [1, 3, 5, 6]);
+    myTable_during_postCSD = myTable_all(:, [2, 3, 5, 6]);
+    myTable_baseline_preCSD = myTable_all(:, [4, 5, 6]);
 
 %    myTable_allPhases2 = myTable_allPhases(:, 1:3); % duplicate to remove baseline_preCSD which is for a different analysis
 
@@ -41,8 +82,8 @@ function [cleanedData, classifiedData, classifiedTable] = processAndClassify(inp
     cleanedData.baseline_preCSD = baseline_preCSD_cleanedData;
 
     % Classify rows
-    [classifiedData.allPhases, classifiedTable.allPhases] = classifyAllCategories(allPhases_cleanedData);
-    [classifiedData.pre_duringCSD, classifiedTable.pre_duringCSD] = classifyAllCategories(pre_during_cleanedData);
-    [classifiedData.pre_postCSD, classifiedTable.pre_postCSD] = classifyAllCategories(pre_post_cleanedData);
-    [classifiedData.during_postCSD, classifiedTable.during_postCSD] = classifyAllCategories(during_post_cleanedData);
+    [classifiedData.allPhases, classifiedTable.allPhases] = classifyAllCategories(allPhases_cleanedData, 2);
+    [classifiedData.pre_duringCSD, classifiedTable.pre_duringCSD] = classifyAllCategories(pre_during_cleanedData, 2);
+    [classifiedData.pre_postCSD, classifiedTable.pre_postCSD] = classifyAllCategories(pre_post_cleanedData, 2);
+    [classifiedData.during_postCSD, classifiedTable.during_postCSD] = classifyAllCategories(during_post_cleanedData, 2);
 end
