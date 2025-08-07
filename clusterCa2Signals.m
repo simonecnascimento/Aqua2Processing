@@ -117,6 +117,23 @@ function [optimal_k, idx, features, cluster_means, count_k1, count_k2] = cluster
 
     % Apply k-means clustering with the optimal k
     [idx, C] = kmeans(features, optimal_k,  'Replicates', 5, 'MaxIter', 300, 'Start', 'plus');
+
+    % Reassign clusters so Cluster 1 always has fewer members than Cluster 2
+    clusterCounts = histcounts(idx, 0.5:1:(optimal_k + 0.5));
+    
+    if clusterCounts(1) > clusterCounts(2)
+        % Swap labels
+        new_idx = idx;
+        new_idx(idx == 1) = -1;     % Temporarily mark cluster 1
+        new_idx(idx == 2) = 1;      % Assign cluster 2 to 1
+        new_idx(new_idx == -1) = 2; % Assign former cluster 1 to 2
+        idx = new_idx;
+    
+        % Also swap cluster centers
+        C = C([2 1], :);
+    end
+
+    % Update cluster counts
     count_k1 = sum(idx == 1);
     count_k2 = sum(idx == 2);
 
