@@ -1,4 +1,4 @@
-function [data_byCell_all, data_byFOV_all] = calculateEventRate(paramTables_all_byCell, paramTables_all_byFOV, durationCSDmin)
+function [events_byCell_all, data_byCell_all, data_byFOV_all] = calculateEventRate(paramTables_all_byCell, paramTables_all_byFOV, durationCSDmin)
     % CALCULATEEVENTRATE Calculate event rates for cells and FOVs.
     %
     % Inputs:
@@ -18,14 +18,24 @@ function [data_byCell_all, data_byFOV_all] = calculateEventRate(paramTables_all_
     data_byCell_all = [];
     data_byFOV_all = [];
 
+    %
+    events_byCell_all = [];
+
     % byCell
     for e = 1:length(paramTables_all_byCell)
 
-        % byCell
+        % byCell Hz
         data_byCell = table2cell(paramTables_all_byCell(e).NumberOfEvents(:,1:4));
         emptyEvents_byCell = cellfun(@isempty, data_byCell);       % Find empty values
         data_byCell(emptyEvents_byCell) = {0};                   % Replace with 0
         data_byCell = cell2mat(data_byCell);          % Convert to numeric matrix
+        
+        % raw event count
+        rowToRemove = (data_byCell(:, 2) == 0 & data_byCell(:, 3) == 0 & data_byCell(:, 4) == 0);
+        data_byCell(rowToRemove, :) = [];
+        events_byCell_all = [events_byCell_all; data_byCell];
+        
+        % byCell event
         eventHz_byCell_phases = data_byCell(:,2:4) ./ durationSeconds;         % Calculate event rate (Hz)
         eventHz_byCell = [data_byCell(:,1), eventHz_byCell_phases]; % add cellID column
 
@@ -33,9 +43,10 @@ function [data_byCell_all, data_byFOV_all] = calculateEventRate(paramTables_all_
         eventHz_byCell(rowsToRemove, :) = [];
 
         data_byCell_all = [data_byCell_all; eventHz_byCell];
+
     end
 
-    % Logical conditions for classification of events
+    % Logical conditions for classification of cells
     risingEvents = data_byCell_all(:, 3) > 2 * data_byCell_all(:, 2);
     decreasingEvents = data_byCell_all(:, 3) < 0.5 * data_byCell_all(:, 2);
     noChangeEvents = ~(risingEvents | decreasingEvents);

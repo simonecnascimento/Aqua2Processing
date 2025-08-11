@@ -16,7 +16,7 @@ function plotFOVDistributionByCluster(combinedTable_clusters, savePath)
     FOVmap = containers.Map(sortedFileNames, FOVlabels);
 
     % Get unique clusters
-    uniqueClusters = unique(combinedTable_clusters.clusterID);
+    uniqueClusters = unique(combinedTable_clusters.eventRate_clusterID);
 
     % Set up figure layout for up to 9 clusters
     fig = figure;
@@ -27,7 +27,7 @@ function plotFOVDistributionByCluster(combinedTable_clusters, savePath)
         clusterID = uniqueClusters(i);
 
         % Filter rows that belong to this cluster
-        clusterData = combinedTable_clusters(combinedTable_clusters.clusterID == clusterID, :);
+        clusterData = combinedTable_clusters(combinedTable_clusters.eventRate_clusterID == clusterID, :);
 
         rawNames = clusterData.fileNameColumn;
 

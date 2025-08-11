@@ -57,7 +57,7 @@ function plotClusterDistributionByFOV(combinedTable_clusters, savePath)
         fovData = combinedTable_clusters(contains(combinedTable_clusters.fileNameColumn, currentFile), :);
         
         % Get the cluster IDs for this FOV
-        clusterIDs = fovData.clusterID;
+        clusterIDs = fovData.eventRate_clusterID;
 
         % Count occurrences of each cluster for this FOV
         [uniqueClusters, ~, idx] = unique(clusterIDs);

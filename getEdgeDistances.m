@@ -42,7 +42,7 @@ function cellPairs_edges_distanceMicron_multipleAppearance = getEdgeDistances(ad
     end
 
     cellPairs_edges_distanceMicron_multipleAppearance = cellPairs_edges_distanceMicron;
-    cellPairs_edges_distanceMicron_multipleAppearance(rowsWithSingleAppearance, :) = [];
+    %cellPairs_edges_distanceMicron_multipleAppearance(rowsWithSingleAppearance, :) = [];
 end
 
 

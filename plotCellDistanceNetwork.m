@@ -1,4 +1,4 @@
-function [adjMatrix, centers_allCells, G, rowsWithSingleAppearance, nodeDegree] = plotCellDistanceNetwork(numCells, data_CFU, data_analysis, simultaneousMatrixDelaybyCell, simultaneousMatrixDelaybyCell_average, pwd, AquA_fileName, tableNames, phase)
+function [adjMatrix, centers_allCells, G, rowsWithSingleAppearance, nodeDegree] = plotCellDistanceNetwork(data_CFU, data_analysis, simultaneousMatrixDelaybyCell, simultaneousMatrixDelaybyCell_average, pwd, AquA_fileName, tableNames, phase)
     % Function to plot a directed graph representing cell distance networks
     % and optionally save the resulting figure.
     % Inputs:
@@ -7,6 +7,14 @@ function [adjMatrix, centers_allCells, G, rowsWithSingleAppearance, nodeDegree] 
     % - simultaneousMatrixDelaybyCell2: Cell array with edge weights
     % - simultaneousMatrixDelaybyCell_average2: Cell array with adjacency matrix values
 
+
+    % Handle missing optional inputs
+    if nargin < 8
+        phase = []; % or default value (e.g., 1)
+    end
+    if nargin < 7
+        tableNames = []; % or default value (e.g., {'Phase1'})
+    end
 
     % ---- Preprocessing ----
     simultaneousMatrixDelaybyCell_average2 = simultaneousMatrixDelaybyCell_average;  
@@ -31,10 +39,14 @@ function [adjMatrix, centers_allCells, G, rowsWithSingleAppearance, nodeDegree] 
     % Extract cell coordinates
     cellCoords = [data_CFU.cfuInfo1(:,1), data_CFU.cfuInfo1(:,3)];
     numCells = size(cellCoords, 1);
+
+    % Select only the valid cells
+    validCells = data_analysis.validCells;
     
     % Compute cell centers
     centers_allCells = [];
-    for i = 1:numCells
+    for idx = 1:numel(validCells)
+        i = validCells(idx);  
         [rows1, cols1] = find(cellCoords{i,2} ~= 0); % Extract coordinates of non-zero elements
         centers = [mean(rows1), mean(cols1)]; % Compute center coordinates
         centers_allCells = [centers_allCells; centers];
@@ -55,12 +67,21 @@ function [adjMatrix, centers_allCells, G, rowsWithSingleAppearance, nodeDegree] 
     % Create directed graph
     G = digraph(adjMatrix);
     
+    % Use only valid cells
+    G.Nodes.Name = cellstr(string(validCells(:)));
+    nodeNames = G.Nodes.Name;
+
     % Get node degree
     nodeDegree = outdegree(G);
 
     % Identify nodes with single appearance
     endNodes = G.Edges.EndNodes;
-    allNodes = endNodes(:);
+
+    % Convert to numeric arrays
+    sourceNodes = str2double(endNodes(:,1));
+    targetNodes = str2double(endNodes(:,2)); 
+    % Combine all node indices
+    allNodes = [sourceNodes; targetNodes];
 
     % Check if allNodes is empty and skip node processing if true
     if isempty(allNodes)
@@ -74,7 +95,7 @@ function [adjMatrix, centers_allCells, G, rowsWithSingleAppearance, nodeDegree] 
         rowsWithSingleAppearance = [];
         for i = 1:length(nodesWithSingleAppearance)
             node = nodesWithSingleAppearance(i);
-            indices = find(endNodes(:, 1) == node | endNodes(:, 2) == node);
+            indices = find(sourceNodes == node | targetNodes == node);
             rowsWithSingleAppearance = [rowsWithSingleAppearance; indices];
         end
     end
@@ -105,10 +126,25 @@ function [adjMatrix, centers_allCells, G, rowsWithSingleAppearance, nodeDegree] 
     perivascular = data_analysis.perivascularCells;
     nonPerivascular = setdiff(1:numCells, perivascular); % Other nodes
 
-    % Highlight perivascular nodes (stars)
-    highlight(h, perivascular, 'Marker', 'p', 'MarkerSize', 10);  
-    % Highlight non-perivascular nodes (round markers)
-    highlight(h, nonPerivascular, 'Marker', 'o', 'MarkerSize', 7); 
+    % Convert numeric node indices to strings
+    nonPerivascularNames = arrayfun(@num2str, nonPerivascular, 'UniformOutput', false);
+    perivascularNames = arrayfun(@num2str, perivascular, 'UniformOutput', false);
+
+    % Find valid nodes in graph for each group
+    validNonPerivascular = intersect(nonPerivascularNames, nodeNames);
+    validPerivascular = intersect(perivascularNames, nodeNames);
+    
+    % Highlight nonPerivascular nodes
+    highlight(h, validNonPerivascular, 'Marker', 'o', 'MarkerSize', 7);
+    
+    % Highlight perivascular nodes
+    highlight(h, validPerivascular, 'Marker', 's', 'MarkerSize', 8);
+
+%     % Highlight perivascular nodes (stars)
+%     highlight(h, nodeNames(perivascular), 'Marker', 'p', 'MarkerSize', 10);  
+%     % Highlight non-perivascular nodes (round markers)
+%     highlight(h, nodeNames(nonPerivascular), 'Marker', 'o', 'MarkerSize', 7);
+%     %highlight(h, nonPerivascular, 'Marker', 'o', 'MarkerSize', 7); 
 
 %     nodeTypes = ismember(1:numCells, perivascular);
 %     nodeColors = 2 * (~nodeTypes); % Red (0) or Blue (2)
@@ -123,20 +159,28 @@ function [adjMatrix, centers_allCells, G, rowsWithSingleAppearance, nodeDegree] 
 
     % Annotate edges with weights and style
     for i = 1:numedges(G)
-        source = G.Edges.EndNodes(i, 1);
-        target = G.Edges.EndNodes(i, 2);
-        sourceCoord = h.XData(source);
-        targetCoord = h.XData(target);
-        ySourceCoord = h.YData(source);
-        yTargetCoord = h.YData(target);
-        midpointX = (sourceCoord + targetCoord) / 2;
-        midpointY = (ySourceCoord + yTargetCoord) / 2;
+        sourceName = G.Edges.EndNodes{i, 1}; % e.g. '10'
+        targetName = G.Edges.EndNodes{i, 2}; % e.g. '5'
+        
+        % Find index of sourceName in G.Nodes.Name
+        [~, sourceIdx] = ismember(sourceName, G.Nodes.Name);
+        [~, targetIdx] = ismember(targetName, G.Nodes.Name);
+        
+        % Now use numeric indices to get coordinates
+        sourceCoordX = h.XData(sourceIdx);
+        sourceCoordY = h.YData(sourceIdx);
+        
+        targetCoordX = h.XData(targetIdx);
+        targetCoordY = h.YData(targetIdx);
+
+        midpointX = (sourceCoordX + targetCoordX) / 2;
+        midpointY = (sourceCoordY + targetCoordY) / 2;
         edgeWeight = G.Edges.Weight(i);
         edgeWeightInt = round(edgeWeight);
 
         % Check if edge is dashed
         if ismember(i, rowsWithSingleAppearance)
-            line([sourceCoord, targetCoord], [ySourceCoord, yTargetCoord], ...
+            line([sourceCoordX, targetCoordX], [sourceCoordY, targetCoordY], ...
                 'LineStyle', '--', 'LineWidth', 2, 'Color', [0.4, 0.4, 0.4]);
         end
 
@@ -154,7 +198,7 @@ function [adjMatrix, centers_allCells, G, rowsWithSingleAppearance, nodeDegree] 
         pathTemp = extractBefore(pwd, "3.");
         
         % Define subfolder path
-        subfolderDigraphName = 'figures\all cells (except multinucleated)\network_digraph\digraphs\new';
+        subfolderDigraphName = 'figures\all cells (except multinucleated)\network_digraph\event_digraphs\new';
         subfolderDigraphPath = fullfile(pathTemp, subfolderDigraphName);
         
         % Create the full file name with path

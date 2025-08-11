@@ -36,9 +36,9 @@ for i = 1:length(sortedFileNames)
 end
 
 %% after the extraction was done
-
+clear all;
 %for fullCraniotomy baseline data - load spreadsheet and add Var3
-load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\AQuA2_data_fullCraniotomy_features_baseline.mat')
+load('V:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\AQuA2_data_fullCraniotomy_features_baseline.mat')
 load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\multinucleated cells\multinucleatedCells.mat');
 fullCraniotomy_combinedTable = addvars(combinedTable, multinucleatedCells.Var3, 'NewVariableNames', 'Multinucleated');
 fullCraniotomy_multinucleated = fullCraniotomy_combinedTable{:,17};

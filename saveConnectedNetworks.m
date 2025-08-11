@@ -32,7 +32,7 @@ function saveConnectedNetworks(G, centers_allCells, pwd, AquA_fileName, tableNam
     pathTemp = extractBefore(pwd, "3.");
 
     % Define subfolder path
-    subfolderNetworkName = 'figures\all cells (except multinucleated)\network_digraph\networks';
+    subfolderNetworkName = 'figures\all cells (except multinucleated)\network_digraph\networks\new';
     subfolderNetworkPath = fullfile(pathTemp, subfolderNetworkName);
 
     % Create the full file name with path

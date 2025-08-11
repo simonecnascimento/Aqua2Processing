@@ -40,7 +40,6 @@ for i = 1:length(sortedFileNames)
     combinedTable_complete = [combinedTable_complete; resultData, table(fileNameColumn)];
 end
 
-
 %% Extract and combine resultData from each experiment
 
 variablesNames = {'Area', ...
@@ -60,6 +59,7 @@ paramTables_all_sum_byFOV = [];
 paramTables_all_mean_byFOV = [];
 paramTables_all_median_byFOV = [];
 eventsByCell_all = [];
+startingFrames_byCell_all = [];
 eventsDelays = [];
 columnsToMedian_all = [];
 
@@ -124,6 +124,10 @@ for file = 1:length(sortedFileNames)
     eventsByCell_experiment = eventsCSDphases(data_analysis, preCSD_frames, duringCSD_frames, postCSD_frames, baseline_preCSD_frames);
     eventsByCell_all = [eventsByCell_all; eventsByCell_experiment];
 
+    % separate startingFrames in pre, during and postCSD
+    startingFrames_byCell = extractStartingFramesByCell(eventsByCell_experiment, startingFrame);
+    startingFrames_byCell_all = [startingFrames_byCell_all; startingFrames_byCell];
+
     % get median of parameters by CSD phase
     paramTables = CSDparams(eventsByCell_experiment, data_analysis, variablesNames);
     paramTables_all_byCell = [paramTables_all_byCell; paramTables];
@@ -143,7 +147,7 @@ for file = 1:length(sortedFileNames)
 end
 
 % Calculate event rate byCell and byFOV(median)
-[eventHz_byCell, eventHz_byFOV] = calculateEventRate(paramTables_all_byCell, paramTables_all_median_byFOV, durationCSDmin);
+[events_byCell_all, eventHz_byCell, eventHz_byFOV] = calculateEventRate(paramTables_all_byCell, paramTables_all_median_byFOV, durationCSDmin);
 
 %get name of columns/parameters
 parameters = fieldnames(paramTables_all_byCell);
@@ -159,7 +163,7 @@ classifications = struct();
 % Directory to save the CSV files
 
 if strcmp(experiment, 'CSD')
-    outputDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick';
+    outputDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\0.49resolution_correct';
 elseif strcmp(experiment, 'BIBN-CSD')
     outputDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\BIBN';
 end
@@ -184,8 +188,13 @@ for param = 1:length(parameters)
     end
 
     % Store the concatenated table in the output struct
-    load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\0.49resolution_correct\combinedTable_clusters.mat');
-    paramTables_allPhases.(parameter) = [combinedTable_currentParam, table(combinedTable_clusters.clusterID, 'VariableNames', {'clusterID'})];
+%     if strcmp(experiment, 'CSD')
+%         load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\0.49resolution_correct\combinedTable_clusters.mat');
+%     elseif strcmp(experiment, 'BIBN-CSD')
+%         load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\BIBN\combinedTable_clusters.mat');
+%     end
+    
+    paramTables_allPhases.(parameter) = combinedTable_currentParam; %[combinedTable_currentParam, table(combinedTable_clusters.eventRate_clusterID, 'VariableNames', {'eventRate_clusterID'})];
 
     % use this combinedTable for prism (preCSD_allFeatures), param-by-param
     combinedTable_currentParam = table2cell(combinedTable_currentParam);
@@ -213,156 +222,217 @@ for param = 1:length(parameters)
     %plotCSDBoxplots(paramTables_allPhases_cleanedData, parameter, outputDir);
 end
 
+%% EVENT raster plot
+% 
+% clear all;
+% load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\0.49resolution_correct\AQuA2_data_fullCraniotomy_CSD3.mat');
+% 
+% load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\BIBN\AQuA2_data_fullCraniotomy_BIBN_CSD2.mat');
+% 
+% % Process startingFrames for raster plot
+% allEmpty = all(cellfun(@isempty, startingFrames_byCell_all(:, 2:5)), 2);
+% startingFrames_byCell_all(allEmpty, :) = []; %% Remove rows where all event phases are empty
+% 
+% % Step 1: Flatten nested cells inside columns 2 to 5
+% flattenedData = startingFrames_byCell_all;
+% 
+% for i = 1:size(flattenedData, 1)
+%     for j = 2:5
+%         val = flattenedData{i, j};
+%         if iscell(val)
+%             % If it's a cell, convert to numeric vector
+%             try
+%                 flattenedData{i, j} = cell2mat(val);
+%             catch
+%                 flattenedData{i, j} = [];
+%             end
+%         end
+%     end
+% end
+% 
+% % Step 2: Convert to table
+% startingFrames_table = cell2table(flattenedData, ...
+%     'VariableNames', {'cellID', 'preCSD', 'duringCSD', 'postCSD', 'baseline_preCSD'});
+% 
+% % Convert clusterID column to a table
+% clusterID_table = table(combinedTable_clusters.eventRate_clusterID(:), 'VariableNames', {'eventRate_clusterID'});
+% dFF_table = table(combinedTable_clusters.dFF(:), 'VariableNames', {'dFF'});
+% 
+% % Horizontally concatenate the tables
+% rasterTable = [startingFrames_table, clusterID_table, dFF_table];
+% rasterTable_sorted = plotRasterByCluster(rasterTable, [1,4,6]); %[2, 4, 9]
+
+%% dFF heatmap
+% 
+% dFF_clusters = cell2mat(rasterTable_sorted.dFF);
+% selectedClusters = [2, 4, 9];
+% 
+% % Plot
+% figure;
+% imagesc(dFF_clusters(:,1:3772))
+% colormap(flipud(gray));
+% colorbar;
+% xlabel('Time (frames)');
+% %ylabel('Cells (sorted by cluster)');
+% %title(['Heatmap clusters: ', num2str(includedClusters)]);
+% 
+% % Cluster dividers
+% hold on;
+% clusterBoundaries = find(diff(selectedClusters));
+% for i = 1:length(clusterBoundaries)
+%     yline(clusterBoundaries(i)+0.5, 'Color', 'k', 'LineWidth', 2);
+% end
+    
 
 
 %% cell count for slide 66
-
-cellType = combinedTable_currentParam{:, 6}; % Extract column 6 as an array
-cellType = cell2mat(cellType);
-totalPerivascular = sum(cellType == 0); % Count rows with 0 or 2
-totalNonPerivascular = sum(cellType == 2);
-
-cellType_pre_duringCSD = paramTables_pre_duringCSD_cleanedData.Area(:,3); % Extract column 6 as an array
-pre_duringCSD_totalPerivascular = sum(cellType_pre_duringCSD == 0); % Count rows with 0 or 2
-pre_duringCSD_totalNonPerivascular = sum(cellType_pre_duringCSD == 2);
-
-cellType_pre_postCSD = paramTables_pre_postCSD_cleanedData.Area(:,3); % Extract column 6 as an array
-pre_duringCSD_totalPerivascular = sum(cellType_pre_postCSD == 0); % Count rows with 0 or 2
-pre_duringCSD_totalNonPerivascular = sum(cellType_pre_postCSD == 2);
-
-combinedTable2 = combinedTable_currentParam;
-
-for x = size(combinedTable2, 1):-1:1  % Looping backward to avoid skipping rows
-    if isempty(combinedTable2.baseline_preCSD{x})
-        combinedTable2(x, :) = [];  % Remove the entire row
-    end
-end
+% 
+% cellType = combinedTable_currentParam{:, 6}; % Extract column 6 as an array
+% cellType = cell2mat(cellType);
+% totalPerivascular = sum(cellType == 0); % Count rows with 0 or 2
+% totalNonPerivascular = sum(cellType == 2);
+% 
+% cellType_pre_duringCSD = paramTables_pre_duringCSD_cleanedData.Area(:,3); % Extract column 6 as an array
+% pre_duringCSD_totalPerivascular = sum(cellType_pre_duringCSD == 0); % Count rows with 0 or 2
+% pre_duringCSD_totalNonPerivascular = sum(cellType_pre_duringCSD == 2);
+% 
+% cellType_pre_postCSD = paramTables_pre_postCSD_cleanedData.Area(:,3); % Extract column 6 as an array
+% pre_duringCSD_totalPerivascular = sum(cellType_pre_postCSD == 0); % Count rows with 0 or 2
+% pre_duringCSD_totalNonPerivascular = sum(cellType_pre_postCSD == 2);
+% 
+% combinedTable2 = combinedTable_currentParam;
+% 
+% for x = size(combinedTable2, 1):-1:1  % Looping backward to avoid skipping rows
+%     if isempty(combinedTable2.baseline_preCSD{x})
+%         combinedTable2(x, :) = [];  % Remove the entire row
+%     end
+% end
 
 %% to compare with baseline data
-
-baselineCSD_area = paramTables_allPhases.Area.baseline_preCSD(~cellfun(@isempty, paramTables_allPhases.Area.baseline_preCSD));
-baselineCSD_perimeter = paramTables_allPhases.Perimeter.baseline_preCSD(~cellfun(@isempty, paramTables_allPhases.Perimeter.baseline_preCSD));
-baselineCSD_circularity = paramTables_allPhases.Circularity.baseline_preCSD(~cellfun(@isempty, paramTables_allPhases.Circularity.baseline_preCSD));
-baselineCSD_maxDFF = paramTables_allPhases.Max_dFF.baseline_preCSD(~cellfun(@isempty, paramTables_allPhases.Max_dFF.baseline_preCSD));
-baselineCSD_duration10to10 = paramTables_allPhases.Duration10to10.baseline_preCSD(~cellfun(@isempty, paramTables_allPhases.Duration10to10.baseline_preCSD));
-baselineCSD_AUCdFF = paramTables_allPhases.dFFAUC.baseline_preCSD(~cellfun(@isempty, paramTables_allPhases.dFFAUC.baseline_preCSD));
-
-% baseline_preCSD (15min)
-baseline_preCSD_eventList = eventsByCell_all(:,5);
-baseline_preCSD_eventList_cleaned = baseline_preCSD_eventList(~cellfun(@isempty, baseline_preCSD_eventList));
-baseline_preCSD_numberOfEvents = cellfun(@(x) numel(x), baseline_preCSD_eventList_cleaned);
-baseline_preCSD_numberOfEvents_Hz = baseline_preCSD_numberOfEvents/900;
-baseline_preCSD_numberOfEvents = [baseline_preCSD_numberOfEvents, baseline_preCSD_numberOfEvents_Hz];
-
-% baseline overall (15min)
-baseline_numberOfEvents = [numberOfEvents_perivascular_NM; numberOfEvents_nonPerivascular_NM];
-baseline_numberOfEvents = table2cell(baseline_numberOfEvents);
-baseline_numberOfEvents = cell2mat(baseline_numberOfEvents);
-baseline_numberOfEvents_Hz = baseline_numberOfEvents/900;
+% 
+% baselineCSD_area = paramTables_allPhases.Area.baseline_preCSD(~cellfun(@isempty, paramTables_allPhases.Area.baseline_preCSD));
+% baselineCSD_perimeter = paramTables_allPhases.Perimeter.baseline_preCSD(~cellfun(@isempty, paramTables_allPhases.Perimeter.baseline_preCSD));
+% baselineCSD_circularity = paramTables_allPhases.Circularity.baseline_preCSD(~cellfun(@isempty, paramTables_allPhases.Circularity.baseline_preCSD));
+% baselineCSD_maxDFF = paramTables_allPhases.Max_dFF.baseline_preCSD(~cellfun(@isempty, paramTables_allPhases.Max_dFF.baseline_preCSD));
+% baselineCSD_duration10to10 = paramTables_allPhases.Duration10to10.baseline_preCSD(~cellfun(@isempty, paramTables_allPhases.Duration10to10.baseline_preCSD));
+% baselineCSD_AUCdFF = paramTables_allPhases.dFFAUC.baseline_preCSD(~cellfun(@isempty, paramTables_allPhases.dFFAUC.baseline_preCSD));
+% 
+% % baseline_preCSD (15min)
+% baseline_preCSD_eventList = eventsByCell_all(:,5);
+% baseline_preCSD_eventList_cleaned = baseline_preCSD_eventList(~cellfun(@isempty, baseline_preCSD_eventList));
+% baseline_preCSD_numberOfEvents = cellfun(@(x) numel(x), baseline_preCSD_eventList_cleaned);
+% baseline_preCSD_numberOfEvents_Hz = baseline_preCSD_numberOfEvents/900;
+% baseline_preCSD_numberOfEvents = [baseline_preCSD_numberOfEvents, baseline_preCSD_numberOfEvents_Hz];
+% 
+% % baseline overall (15min)
+% baseline_numberOfEvents = [numberOfEvents_perivascular_NM; numberOfEvents_nonPerivascular_NM];
+% baseline_numberOfEvents = table2cell(baseline_numberOfEvents);
+% baseline_numberOfEvents = cell2mat(baseline_numberOfEvents);
+% baseline_numberOfEvents_Hz = baseline_numberOfEvents/900;
 
 %% number of events by phase
-
-% preCSD
-preCSD_eventList = eventsByCell_all(:,2);
-preCSD_eventList_cleaned = preCSD_eventList(~cellfun(@isempty, preCSD_eventList));
-preCSD_numberOfEvents = cellfun(@(x) numel(x), preCSD_eventList_cleaned);
-preCSD_numberOfEvents_Hz = preCSD_numberOfEvents/1800;
-preCSD_numberOfEvents = [preCSD_numberOfEvents, preCSD_numberOfEvents_Hz];
-
-% duringCSD
-duringCSD_eventList = eventsByCell_all(:,3);
-duringCSD_eventList_cleaned = duringCSD_eventList(~cellfun(@isempty, duringCSD_eventList));
-duringCSD_numberOfEvents = cellfun(@(x) numel(x), duringCSD_eventList_cleaned);
-duringCSD_numberOfEvents_Hz = duringCSD_numberOfEvents/900;
-duringCSD_numberOfEvents = [duringCSD_numberOfEvents, duringCSD_numberOfEvents_Hz];
-
-% postCSD
-postCSD_eventList = eventsByCell_all(:,4);
-postCSD_eventList_cleaned = postCSD_eventList(~cellfun(@isempty, postCSD_eventList));
-postCSD_numberOfEvents = cellfun(@(x) numel(x), postCSD_eventList_cleaned);
-postCSD_numberOfEvents_Hz = postCSD_numberOfEvents/1800;
-postCSD_numberOfEvents = [postCSD_numberOfEvents, postCSD_numberOfEvents_Hz];
+% 
+% % preCSD
+% preCSD_eventList = eventsByCell_all(:,2);
+% preCSD_eventList_cleaned = preCSD_eventList(~cellfun(@isempty, preCSD_eventList));
+% preCSD_numberOfEvents = cellfun(@(x) numel(x), preCSD_eventList_cleaned);
+% preCSD_numberOfEvents_Hz = preCSD_numberOfEvents/1800;
+% preCSD_numberOfEvents = [preCSD_numberOfEvents, preCSD_numberOfEvents_Hz];
+% 
+% % duringCSD
+% duringCSD_eventList = eventsByCell_all(:,3);
+% duringCSD_eventList_cleaned = duringCSD_eventList(~cellfun(@isempty, duringCSD_eventList));
+% duringCSD_numberOfEvents = cellfun(@(x) numel(x), duringCSD_eventList_cleaned);
+% duringCSD_numberOfEvents_Hz = duringCSD_numberOfEvents/900;
+% duringCSD_numberOfEvents = [duringCSD_numberOfEvents, duringCSD_numberOfEvents_Hz];
+% 
+% % postCSD
+% postCSD_eventList = eventsByCell_all(:,4);
+% postCSD_eventList_cleaned = postCSD_eventList(~cellfun(@isempty, postCSD_eventList));
+% postCSD_numberOfEvents = cellfun(@(x) numel(x), postCSD_eventList_cleaned);
+% postCSD_numberOfEvents_Hz = postCSD_numberOfEvents/1800;
+% postCSD_numberOfEvents = [postCSD_numberOfEvents, postCSD_numberOfEvents_Hz];
 
 %% stackedBar for number of events 
-
-% Data for the categories (based on manual count of responses on each FOV: eventHz_byCell)
-stackedBarCSD = [
-    19, 19, 16, 8, 15, 3, 4, 16, 17, 18, 11, 7, 11;  % Decrease
-    1, 0, 14, 4, 4, 2, 3, 2, 1, 1, 5, 7, 5;  % Increase
-    1, 2, 4, 5, 3, 1, 6, 9, 0, 4, 0, 0, 1  % No Change
-];
-
-stackedBarBIBN = [
-    14, 3, 14;  % Decrease
-    3, 4, 3;  % Increase
-    1, 0, 0  % No Change
-];
-
-% Categories
-categories = {'Decrease', 'Increase', 'No Change'};
-
-% Create stacked bar chart
-figure;
-bar(stackedBarBIBN', 'stacked');
-
-% Add labels and title
-xlabel('FOV');
-ylabel('# cells');
-title('Cellular Event Rate (Hz) Response: DuringCSD vs. PreCSD');
-legend(categories, 'Location', 'best');
-
-% Set maximum value for y-axis
-ylim([0 20]);  % Adjust the maximum value (e.g., 20) as needed
-
-grid off;
+% 
+% % Data for the categories (based on manual count of responses on each FOV: eventHz_byCell)
+% stackedBarCSD = [
+%     19, 19, 16, 8, 15, 3, 4, 16, 17, 18, 11, 7, 11;  % Decrease
+%     1, 0, 14, 4, 4, 2, 3, 2, 1, 1, 5, 7, 5;  % Increase
+%     1, 2, 4, 5, 3, 1, 6, 9, 0, 4, 0, 0, 1  % No Change
+% ];
+% 
+% stackedBarBIBN = [
+%     14, 3, 14;  % Decrease
+%     3, 4, 3;  % Increase
+%     1, 0, 0  % No Change
+% ];
+% 
+% % Categories
+% categories = {'Decrease', 'Increase', 'No Change'};
+% 
+% % Create stacked bar chart
+% figure;
+% bar(stackedBarBIBN', 'stacked');
+% 
+% % Add labels and title
+% xlabel('FOV');
+% ylabel('# cells');
+% title('Cellular Event Rate (Hz) Response: DuringCSD vs. PreCSD');
+% legend(categories, 'Location', 'best');
+% 
+% % Set maximum value for y-axis
+% ylim([0 20]);  % Adjust the maximum value (e.g., 20) as needed
+% 
+% grid off;
 
 %% pie charts
-
-% Data for the categories (rows are categories, columns are FOVs)
-stackedBarCSD = [
-    19, 19, 16, 8, 15, 3, 4, 16, 17, 18, 11, 7, 11;  % Decrease
-    1, 0, 14, 4, 4, 2, 3, 2, 1, 1, 5, 7, 5;  % Increase
-    1, 2, 4, 5, 3, 1, 6, 9, 0, 4, 0, 0, 1  % No Change
-];
-
-stackedBarBIBN = [
-    14, 3, 14;  % Decrease
-    3, 4, 3;  % Increase
-    1, 0, 0  % No Change
-];
-
-% Normalize each category by its total to calculate percentages
-percentIncrease = stackedBarBIBN(1, :) / sum(stackedBarBIBN(1, :)) * 100;
-percentDecrease = stackedBarBIBN(2, :) / sum(stackedBarBIBN(2, :)) * 100;
-percentNoChange = stackedBarBIBN(3, :) / sum(stackedBarBIBN(3, :)) * 100;
-
-% Sort each category in descending order
-[percentIncreaseSorted, idxIncrease] = sort(percentIncrease, 'descend');
-[percentDecreaseSorted, idxDecrease] = sort(percentDecrease, 'descend');
-[percentNoChangeSorted, idxNoChange] = sort(percentNoChange, 'descend');
-
-% Generate corresponding labels
-labelsIncrease = arrayfun(@(x) ['FOV ' num2str(x)], idxIncrease, 'UniformOutput', false);
-labelsDecrease = arrayfun(@(x) ['FOV ' num2str(x)], idxDecrease, 'UniformOutput', false);
-labelsNoChange = arrayfun(@(x) ['FOV ' num2str(x)], idxNoChange, 'UniformOutput', false);
-
-% Create pie charts
-figure;
-
-% Pie chart for "Increase"
-subplot(1, 3, 1);
-pie(percentIncreaseSorted, labelsIncrease);
-title('Increase Event Rate (Hz)', 'FontSize',15);
-%legend(arrayfun(@(x) ['FOV ' num2str(x)], 1:size(stackedBar, 2), 'UniformOutput', false), 'Location', 'bestoutside');
-
-% Pie chart for "Decrease"
-subplot(1, 3, 2);
-pie(percentDecreaseSorted, labelsDecrease);
-title('Decrease Event Rate (Hz)', 'FontSize',15);
-%legend(arrayfun(@(x) ['FOV ' num2str(x)], 1:size(stackedBar, 2), 'UniformOutput', false), 'Location', 'bestoutside');
-
-% Pie chart for "No Change"
-subplot(1, 3, 3);
-pie(percentNoChangeSorted, labelsNoChange);
-title('No Change Event Rate (Hz)', 'FontSize',15);
-%legend(arrayfun(@(x) ['FOV ' num2str(x)], 1:size(stackedBar, 2), 'UniformOutput', false), 'Location', 'bestoutside');
+% 
+% % Data for the categories (rows are categories, columns are FOVs)
+% stackedBarCSD = [
+%     19, 19, 16, 8, 15, 3, 4, 16, 17, 18, 11, 7, 11;  % Decrease
+%     1, 0, 14, 4, 4, 2, 3, 2, 1, 1, 5, 7, 5;  % Increase
+%     1, 2, 4, 5, 3, 1, 6, 9, 0, 4, 0, 0, 1  % No Change
+% ];
+% 
+% stackedBarBIBN = [
+%     14, 3, 14;  % Decrease
+%     3, 4, 3;  % Increase
+%     1, 0, 0  % No Change
+% ];
+% 
+% % Normalize each category by its total to calculate percentages
+% percentIncrease = stackedBarBIBN(1, :) / sum(stackedBarBIBN(1, :)) * 100;
+% percentDecrease = stackedBarBIBN(2, :) / sum(stackedBarBIBN(2, :)) * 100;
+% percentNoChange = stackedBarBIBN(3, :) / sum(stackedBarBIBN(3, :)) * 100;
+% 
+% % Sort each category in descending order
+% [percentIncreaseSorted, idxIncrease] = sort(percentIncrease, 'descend');
+% [percentDecreaseSorted, idxDecrease] = sort(percentDecrease, 'descend');
+% [percentNoChangeSorted, idxNoChange] = sort(percentNoChange, 'descend');
+% 
+% % Generate corresponding labels
+% labelsIncrease = arrayfun(@(x) ['FOV ' num2str(x)], idxIncrease, 'UniformOutput', false);
+% labelsDecrease = arrayfun(@(x) ['FOV ' num2str(x)], idxDecrease, 'UniformOutput', false);
+% labelsNoChange = arrayfun(@(x) ['FOV ' num2str(x)], idxNoChange, 'UniformOutput', false);
+% 
+% % Create pie charts
+% figure;
+% 
+% % Pie chart for "Increase"
+% subplot(1, 3, 1);
+% pie(percentIncreaseSorted, labelsIncrease);
+% title('Increase Event Rate (Hz)', 'FontSize',15);
+% %legend(arrayfun(@(x) ['FOV ' num2str(x)], 1:size(stackedBar, 2), 'UniformOutput', false), 'Location', 'bestoutside');
+% 
+% % Pie chart for "Decrease"
+% subplot(1, 3, 2);
+% pie(percentDecreaseSorted, labelsDecrease);
+% title('Decrease Event Rate (Hz)', 'FontSize',15);
+% %legend(arrayfun(@(x) ['FOV ' num2str(x)], 1:size(stackedBar, 2), 'UniformOutput', false), 'Location', 'bestoutside');
+% 
+% % Pie chart for "No Change"
+% subplot(1, 3, 3);
+% pie(percentNoChangeSorted, labelsNoChange);
+% title('No Change Event Rate (Hz)', 'FontSize',15);
+% %legend(arrayfun(@(x) ['FOV ' num2str(x)], 1:size(stackedBar, 2), 'UniformOutput', false), 'Location', 'bestoutside');

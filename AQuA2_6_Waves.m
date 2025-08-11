@@ -44,22 +44,22 @@ end
 % for all cells
 plotFFT_all(dFF_all, Fs);  % dFF_all is your matrix of signals for all cells
 
-%% 1.Cluster based on wave shape
-
-maxClusters = 10; % Test up to 10 clusters
-optimalK = findOptimalClusters(dFF_all, maxClusters);
-[idx, count_k1, count_k2]  = clusterWaves(dFF_all, optimalK);
-
-%% 2. Cluster based on SNR
-
-dFF_all(105, :) = [];
-
-% Compute SNR
-snr_ma = computeSNR(dFF_all, 'ma', 5);  % Using a window size of 5
-snr_fft = computeSNR(dFF_all, 'fft', 0.2);  % Using 20% of frequencies as the cutoff
-
-maxClusters = 10; % Test up to 10 clusters
-[idx, clustered_cells, optimalK, count_k1, count_k2] = clusterSNR(snr_ma, maxClusters, dFF_all);  % Use snr_ma or snr_fft
+ %% 1.Cluster based on wave shape
+% 
+% maxClusters = 10; % Test up to 10 clusters
+% optimalK = findOptimalClusters(dFF_all, maxClusters);
+% [idx, count_k1, count_k2]  = clusterWaves(dFF_all, optimalK);
+% 
+% %% 2. Cluster based on SNR
+% 
+% dFF_all(105, :) = [];
+% 
+% % Compute SNR
+% snr_ma = computeSNR(dFF_all, 'ma', 5);  % Using a window size of 5
+% snr_fft = computeSNR(dFF_all, 'fft', 0.2);  % Using 20% of frequencies as the cutoff
+% 
+% maxClusters = 10; % Test up to 10 clusters
+% [idx, clustered_cells, optimalK, count_k1, count_k2] = clusterSNR(snr_ma, maxClusters, dFF_all);  % Use snr_ma or snr_fft
 
 %% 3. Cluster based on detrend, sgolayfilt, kmeans
 % https://www-science-org.ezp-prod1.hul.harvard.edu/doi/pdf/10.1126/scisignal.abe6909

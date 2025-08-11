@@ -39,7 +39,7 @@ function [cleanedData, classifiedData, classifiedTable] = processAndClassify(inp
 %     end
 
     if strcmp(parameter, 'NumberOfEvents')
-        durations = [1800, 60, 1800, 900, 1e3];
+        durations = [1800, 60, 1800, 900, 1e3, 1e3];
     
         % Extract cell contents and convert to numeric
         data = cell2mat(myTable_all{:,:});  % Nx5 numeric matrix

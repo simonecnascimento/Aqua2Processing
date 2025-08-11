@@ -25,7 +25,7 @@ function tbl = chiSquaredTestForAssociation(data)
     imagesc(tbl);  % Create a heatmap
     colorbar;  % Show color bar
     title('Contingency Table Heatmap');
-    xlabel('Cell Location');
+    xlabel('Cell Location (1, P; 2, NP)');
     ylabel('Cluster');
     %xticks(1:length(locLabels));  % Set x-ticks to the cluster labels
     %xticklabels(locLabels);

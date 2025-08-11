@@ -35,14 +35,24 @@ function plotClusterHeatmap_zscore(combinedTable, includedClusters, savePath)
     % Convert to matrix
     dFF_Matrix = cell2mat(selectedData);
 
-%     for x = 1:size(dFF_Matrix,1)
-%         figure;
-%         plot(dFF_Matrix(x,:))
-%     end
+    for x = 1:size(dFF_Matrix,1)
+        figure;
+        plot(dFF_Matrix(x,:))
+    end
 
-    toRemove = [3,20,36,47,74,80, 102, 103:118]; %above 4 %102 (strong signal postCSD) %103-118 (strange baseline)
-    toRemove = [3,20,27,29,36,47,57,59,74,80,82,86,103:118,182,187,221]; %above 3 %103-118 strange baseline
+    toRemove_4 = any(dFF_Matrix > 4, 2);  % Find rows with any value > 4
+    dFF_Matrix(toRemove_4, :) = [];       
+    selectedClusters(toRemove_4, :) = [];  
+    selectedData(toRemove_4, :) = [];      
+
+    toRemove_3 = any(dFF_Matrix > 3, 2);  % Find rows with any value > 3
+    dFF_Matrix(toRemove_3, :) = [];     
+
+    toRemove = 64:80;
     dFF_Matrix(toRemove, :) = [];
+    selectedClusters(toRemove, :) = [];  
+    selectedData(toRemove, :) = [];   
+
 
 %     % Z-score by row (each cell individually)
 %     zscored_dFF = zscore(dFF_Matrix, 0, 2);  % 0 = normalize using std, 2 = operate along rows
@@ -81,7 +91,7 @@ function plotClusterHeatmap_zscore(combinedTable, includedClusters, savePath)
     colorbar;
     xlabel('Time (frames)');
     %ylabel('Cells (sorted by cluster)');
-    %title(['Heatmap clusters: ', num2str(includedClusters)]);
+    title(['Heatmap clusters: ', num2str(includedClusters)]);
 
     % Cluster dividers
     hold on;
@@ -91,7 +101,7 @@ function plotClusterHeatmap_zscore(combinedTable, includedClusters, savePath)
     end
     
     % Define specific transitions you want to mark
-    targetTransitions = [2 1; 7 3]; % CSD
+    targetTransitions = [3 1; 7 3]; % CSD [3 1; 7 3] [2 1; 7 3] [3 1; 7 3]
     %targetTransitions = [2 1; 7 6]; % BIBN-CSD
     
     % Loop through and add lines where these transitions occur

@@ -26,57 +26,57 @@ elseif strcmp(experiment, 'BIBN-CSD')
 end
 
 %% CLUSTER BY EVENT RATE (9)
-
-% Extract cell types and cluster CSD events
-cellTypes = combinedTable_complete{:, 13};
-cells = ["cells"; "perivascular"; "non-perivascular"];
-
-% 9 clusters
-[eventRate_directions, eventRate_directionCounts, eventRate_directionLabels, eventRate_clusterID, rates_mHz, rates_mHz_clusterID] = clusterWaves_eventRate9_CSD(eventHz_byCell, cellTypes);
-eventRate_clusters = [eventRate_directions; eventRate_directionCounts];
-eventRate_clusters = [eventRate_clusters, cells];
-
-combinedTable_clusters = addvars(combinedTable_complete, eventRate_clusterID, 'NewVariableNames', 'eventRate_clusterID');
-
-% Assuming rates_mHz is Nx3 (columns: preCSD, duringCSD, postCSD)
-combinedTable_clusters = addvars(combinedTable_clusters, ...
-    rates_mHz(:,1), rates_mHz(:,2), rates_mHz(:,3), ...
-    'NewVariableNames', {'eventRate_preCSD', 'eventRate_duringCSD', 'eventRate_postCSD'});
-
-rates_mHz_clusterID_sorted = sortrows(rates_mHz_clusterID, 4); % descending sort by column 4
-
-% Chi-square - comparing the distribution between perivascular vs non-perivascular for each cluster
-[p_values_byCluster, stats_byCluster] = chi_square_plot(eventRate_directionCounts);
-
-% Run Chi-square test of independence - testing whether cluster and cell type are independent
-[~, p_values_All, stats_All] = chi2gof_from_table(eventRate_directionCounts);
-
-% Chi-square test by ACUTE response
-[p_values_Acute, stats_Acute] = chi_square_by_acuteResponse(eventRate_directionCounts, 3);
-
-% Chi-square test by CHRONIC response
-[p_values_Chronic, stats_Chronic] = chi_square_by_chronicResponse(eventRate_directionCounts);
-
-% Plot heatmap of conditional probabilities (3x3)
-[All_matrix, P_matrix, NP_matrix] = plotConditionalProbabilities(eventRate_directionCounts, outputDir);
-
-% Distributions 
-% Plot distribution Cell type x Cluster
-[clustersPercentage, roundedData] = plotClusterDistributionByCellType(eventRate_clusters, eventRate_directions, cells, outputDir);
-
-% Plot distribution clusters x FOV
-plotFOVDistributionByCluster(combinedTable_clusters, outputDir);
-
-% Plot distribution FOV x cluster
-plotClusterDistributionByFOV(combinedTable_clusters, outputDir);
-
-%create heatmap
-plotClusterHeatmap_FOVnormalized(combinedTable_clusters, [1:9], sortedFileNames, outputDir); %[1,2, 5:9] BIBN by FOV
-plotClusterHeatmap_zscore(combinedTable_clusters, [2,4,9], outputDir); %[1,2,3,1,4,7,3,6,9]
-
-% stacked bars
-probs = compute_Clusterwise_probabilities(eventRate_directionCounts);
-plotStackedDirectionGroups(eventRate_directionCounts, outputDir)
+% 
+% % Extract cell types and cluster CSD events
+% cellTypes = combinedTable_complete{:, 13};
+% cells = ["cells"; "perivascular"; "non-perivascular"];
+% 
+% % 9 clusters
+% [eventRate_directions, eventRate_directionCounts, eventRate_directionLabels, eventRate_clusterID, rates_mHz, rates_mHz_clusterID] = clusterWaves_eventRate9_CSD(eventHz_byCell, cellTypes);
+% eventRate_clusters = [eventRate_directions; eventRate_directionCounts];
+% eventRate_clusters = [eventRate_clusters, cells];
+% 
+% combinedTable_clusters = addvars(combinedTable_complete, eventRate_clusterID, 'NewVariableNames', 'eventRate_clusterID');
+% 
+% % Assuming rates_mHz is Nx3 (columns: preCSD, duringCSD, postCSD)
+% combinedTable_clusters = addvars(combinedTable_clusters, ...
+%     rates_mHz(:,1), rates_mHz(:,2), rates_mHz(:,3), ...
+%     'NewVariableNames', {'eventRate_preCSD', 'eventRate_duringCSD', 'eventRate_postCSD'});
+% 
+% rates_mHz_clusterID_sorted = sortrows(rates_mHz_clusterID, 4); % descending sort by column 4
+% 
+% % Chi-square - comparing the distribution between perivascular vs non-perivascular for each cluster
+% [p_values_byCluster, stats_byCluster] = chi_square_plot(eventRate_directionCounts);
+% 
+% % Run Chi-square test of independence - testing whether cluster and cell type are independent
+% [~, p_values_All, stats_All] = chi2gof_from_table(eventRate_directionCounts);
+% 
+% % Chi-square test by ACUTE response
+% [p_values_Acute, stats_Acute] = chi_square_by_acuteResponse(eventRate_directionCounts, 3);
+% 
+% % Chi-square test by CHRONIC response
+% [p_values_Chronic, stats_Chronic] = chi_square_by_chronicResponse(eventRate_directionCounts);
+% 
+% % Plot heatmap of conditional probabilities (3x3)
+% [All_matrix, P_matrix, NP_matrix] = plotConditionalProbabilities(eventRate_directionCounts, outputDir);
+% 
+% % Distributions 
+% % Plot distribution Cell type x Cluster
+% [clustersPercentage, roundedData] = plotClusterDistributionByCellType(eventRate_clusters, eventRate_directions, cells, outputDir);
+% 
+% % Plot distribution clusters x FOV
+% plotFOVDistributionByCluster(combinedTable_clusters, outputDir);
+% 
+% % Plot distribution FOV x cluster
+% plotClusterDistributionByFOV(combinedTable_clusters, outputDir);
+% 
+% %create heatmap
+% plotClusterHeatmap_FOVnormalized(combinedTable_clusters, [1:9], sortedFileNames, outputDir); %[1,2, 5:9] BIBN by FOV
+% plotClusterHeatmap_zscore(combinedTable_clusters, [2,4,9], outputDir); %[1,2,3,1,4,7,3,6,9]
+% 
+% % stacked bars
+% probs = compute_Clusterwise_probabilities(eventRate_directionCounts);
+% plotStackedDirectionGroups(eventRate_directionCounts, outputDir)
 
 %% CLUSTER by EVENT RATE (6)
 
@@ -91,41 +91,130 @@ eventRate_clusters = [eventRate_clusters, cells];
 
 combinedTable_clusters = addvars(combinedTable_complete, eventRate_clusterID, 'NewVariableNames', 'eventRate_clusterID');
 
+
+% % Example 1: Acute Increase
+% AcuteIncrease = [7 7; 3 4];
+% plotChi2Residuals(AcuteIncrease, {'P','NP'}, {'Persistent Increase','Persistent Decrease'});
+% 
+% % Example 2: Persistent Increase
+% PersistentIncrease = [7 11; 3 34];
+% plotChi2Residuals(PersistentIncrease, {'P','NP'}, {'Acute Increase','Acute No Change'});
+% 
+% % Example 3: Persistent Decrease
+% PersistentDecrease = [7 25; 4 110];
+% plotChi2Residuals(PersistentDecrease, {'P','NP'}, {'Acute Increase','Acute No Change'});
+% 
+
 % Assuming rates_mHz is Nx3 (columns: preCSD, duringCSD, postCSD)
 combinedTable_clusters = addvars(combinedTable_clusters, ...
     rates_mHz(:,1), rates_mHz(:,2), rates_mHz(:,3), ...
     'NewVariableNames', {'eventRate_preCSD', 'eventRate_duringCSD', 'eventRate_postCSD'});
 
-rate_cluster_acuteIncrease = []; %2
-rate_cluster_chronicIncrease = []; %4
-rate_cluster_chronicDecrease = []; %6
+% % without separating by cell type
+% rate_cluster_acuteIncrease = []; %2
+% rate_cluster_chronicIncrease = []; %4
+% rate_cluster_chronicDecrease = []; %6
+% 
+% rate_cluster_AllacuteIncrease = []; %1,2,3
+% rate_cluster_AllchronicIncrease = []; %1,4
+% rate_cluster_AllchronicDecrease = []; %3,6
+% 
+% for cellCluster = 1:size(rates_mHz, 1)
+%     clusterID = combinedTable_clusters.eventRate_clusterID(cellCluster);
+%     currentCell_rate = rates_mHz(cellCluster, :);  % row vector
+%     cellType = cellTypes(cellCluster);
+% 
+%     % Individual clusters
+%     if clusterID == 2
+%         rate_cluster_acuteIncrease = [rate_cluster_acuteIncrease; [currentCell_rate, cellType]];
+%     end
+%     if clusterID == 4
+%         rate_cluster_chronicIncrease = [rate_cluster_chronicIncrease; [currentCell_rate, cellType]];
+%     end
+%     if clusterID == 6
+%         rate_cluster_chronicDecrease = [rate_cluster_chronicDecrease; [currentCell_rate, cellType]];
+%     end
+% 
+%     % Combined clusters
+%     if ismember(clusterID, [1,2,3])
+%         rate_cluster_AllacuteIncrease = [rate_cluster_AllacuteIncrease; [currentCell_rate, cellType]];
+%     end
+%     if ismember(clusterID, [1, 4])
+%         rate_cluster_AllchronicIncrease = [rate_cluster_AllchronicIncrease; [currentCell_rate, cellType]];
+%     end
+%     if ismember(clusterID, [3, 6])
+%         rate_cluster_AllchronicDecrease = [rate_cluster_AllchronicDecrease; [currentCell_rate, cellType]];
+%     end
+% end
 
-rate_cluster_AllchronicIncrease = []; %1,4
-rate_cluster_AllchronicDecrease = []; %3,6
+% === Initialize ===
+rate_cluster_acuteIncrease_peri       = [];
+rate_cluster_acuteIncrease_nonperi    = [];
+rate_cluster_chronicIncrease_peri     = [];
+rate_cluster_chronicIncrease_nonperi  = [];
+rate_cluster_chronicDecrease_peri     = [];
+rate_cluster_chronicDecrease_nonperi  = [];
 
+% rate_cluster_AllacuteIncrease_peri    = [];
+% rate_cluster_AllacuteIncrease_nonperi = [];
+% rate_cluster_AllchronicIncrease_peri  = [];
+% rate_cluster_AllchronicIncrease_nonperi = [];
+% rate_cluster_AllchronicDecrease_peri  = [];
+% rate_cluster_AllchronicDecrease_nonperi = [];
+
+% === Loop through each cell ===
 for cellCluster = 1:size(rates_mHz, 1)
-    clusterID = combinedTable_clusters.eventRate_clusterID(cellCluster);
+    clusterID        = combinedTable_clusters.eventRate_clusterID(cellCluster);
     currentCell_rate = rates_mHz(cellCluster, :);  % row vector
-    
-    % Individual clusters
+    cellType         = cellTypes(cellCluster);     % 0 = peri, 2 = non-peri
+
+    % --- Individual clusters ---
     if clusterID == 2
-        rate_cluster_acuteIncrease = [rate_cluster_acuteIncrease; currentCell_rate];
-    end
-    if clusterID == 4
-        rate_cluster_chronicIncrease = [rate_cluster_chronicIncrease; currentCell_rate];
-    end
-    if clusterID == 6
-        rate_cluster_chronicDecrease = [rate_cluster_chronicDecrease; currentCell_rate];
+        if cellType == 0
+            rate_cluster_acuteIncrease_peri = [rate_cluster_acuteIncrease_peri; currentCell_rate];
+        elseif cellType == 2
+            rate_cluster_acuteIncrease_nonperi = [rate_cluster_acuteIncrease_nonperi; currentCell_rate];
+        end
+    elseif clusterID == 4
+        if cellType == 0
+            rate_cluster_chronicIncrease_peri = [rate_cluster_chronicIncrease_peri; currentCell_rate];
+        elseif cellType == 2
+            rate_cluster_chronicIncrease_nonperi = [rate_cluster_chronicIncrease_nonperi; currentCell_rate];
+        end
+    elseif clusterID == 6
+        if cellType == 0
+            rate_cluster_chronicDecrease_peri = [rate_cluster_chronicDecrease_peri; currentCell_rate];
+        elseif cellType == 2
+            rate_cluster_chronicDecrease_nonperi = [rate_cluster_chronicDecrease_nonperi; currentCell_rate];
+        end
     end
 
-    % Combined clusters
-    if ismember(clusterID, [1, 4])
-        rate_cluster_AllchronicIncrease = [rate_cluster_AllchronicIncrease; currentCell_rate];
-    end
-    if ismember(clusterID, [3, 6])
-        rate_cluster_AllchronicDecrease = [rate_cluster_AllchronicDecrease; currentCell_rate];
-    end
+%     % --- Combined clusters ---
+%     if ismember(clusterID, [1, 2, 3]) % All acute increase
+%         if cellType == 0
+%             rate_cluster_AllacuteIncrease_peri = [rate_cluster_AllacuteIncrease_peri; currentCell_rate];
+%         elseif cellType == 2
+%             rate_cluster_AllacuteIncrease_nonperi = [rate_cluster_AllacuteIncrease_nonperi; currentCell_rate];
+%         end
+%     end
+% 
+%     if ismember(clusterID, [1, 4]) % All chronic increase
+%         if cellType == 0
+%             rate_cluster_AllchronicIncrease_peri = [rate_cluster_AllchronicIncrease_peri; currentCell_rate];
+%         elseif cellType == 2
+%             rate_cluster_AllchronicIncrease_nonperi = [rate_cluster_AllchronicIncrease_nonperi; currentCell_rate];
+%         end
+%     end
+% 
+%     if ismember(clusterID, [3, 6]) % All chronic decrease
+%         if cellType == 0
+%             rate_cluster_AllchronicDecrease_peri = [rate_cluster_AllchronicDecrease_peri; currentCell_rate];
+%         elseif cellType == 2
+%             rate_cluster_AllchronicDecrease_nonperi = [rate_cluster_AllchronicDecrease_nonperi; currentCell_rate];
+%         end
+%     end
 end
+
 
 
 % Initialize group labels
@@ -146,106 +235,106 @@ groupPercents = 100 * groupCounts / total;
 
 %% CLUSTER by EVENT COUNT (6)
 
-cellTypes = combinedTable_complete{:, 13};
-cells = ["cells"; "perivascular"; "non-perivascular"];
-[eventCounts_directions, eventCounts_directionCounts, eventCounts_directionLabels, counts_clusterID, eventCounts, eventCounts_clusterID] = clusterWaves_eventCount6_CSD(events_byCell_all, cellTypes);
-eventCounts_clusters = [eventCounts_directions; eventCounts_directionCounts];
-eventCounts_clusters = [eventCounts_clusters, cells];
-
-combinedTable_clusters = addvars(combinedTable_complete, counts_clusterID, 'NewVariableNames', 'counts_clusterID');
-
-% Plot heatmap of conditional probabilities (3x3)
-[All_matrix, P_matrix, NP_matrix] = plotCluster6Distribution(eventCounts_directionCounts, outputDir);
+% cellTypes = combinedTable_complete{:, 13};
+% cells = ["cells"; "perivascular"; "non-perivascular"];
+% [eventCounts_directions, eventCounts_directionCounts, eventCounts_directionLabels, counts_clusterID, eventCounts, eventCounts_clusterID] = clusterWaves_eventCount6_CSD(events_byCell_all, cellTypes);
+% eventCounts_clusters = [eventCounts_directions; eventCounts_directionCounts];
+% eventCounts_clusters = [eventCounts_clusters, cells];
+% 
+% combinedTable_clusters = addvars(combinedTable_complete, counts_clusterID, 'NewVariableNames', 'counts_clusterID');
+% 
+% % Plot heatmap of conditional probabilities (3x3)
+% [All_matrix, P_matrix, NP_matrix] = plotCluster6Distribution(eventCounts_directionCounts, outputDir);
 
 %% CLUSTER BY dFF (9)
 
-cellTypes = combinedTable_complete{:, 13};
-cells = ["cells"; "perivascular"; "non-perivascular"];
-[dFF_directions, dFF_directionCounts, dFF_directionLabels, dFF_clusterID, phaseParams_dFF] = clusterParams_CSD(paramTables_allPhases, cellTypes);
-dFF_clusters = [dFF_directions; dFF_directionCounts];
-dFF_clusters = [dFF_clusters, cells];
-
-combinedTable_clusters = addvars(combinedTable_clusters, dFF_clusterID, 'NewVariableNames', 'dFF_clusterID');
-
-% Convert vectors to tables
-T_eventRate = table(eventRate_clusterID, 'VariableNames', {'eventRate_clusterID'});
-T_dFF = table(dFF_clusterID, 'VariableNames', {'dFF_clusterID'});
-
-dFF_clustersTable = [T_eventRate, T_dFF, phaseParams_dFF];
-
-
-dFFcluster_acuteIncrease = []; %2
-dFFcluster_chronicIncrease = []; %4
-dFFcluster_chronicDecrease = []; %6
-
-dFFcluster_AllchronicIncrease = []; %1,4
-dFFcluster_AllchronicDecrease = []; %3,6
-
-
-for cellCluster = 1:size(phaseParams_dFF, 1)
-    clusterID = dFF_clustersTable.eventRate_clusterID(cellCluster);
-    currentCell_dFF = phaseParams_dFF(cellCluster, :);  % row vector
-    
-    % Individual clusters
-    if clusterID == 2
-        dFFcluster_acuteIncrease = [dFFcluster_acuteIncrease; currentCell_dFF];
-    end
-    if clusterID == 4
-        dFFcluster_chronicIncrease = [dFFcluster_chronicIncrease; currentCell_dFF];
-    end
-    if clusterID == 6
-        dFFcluster_chronicDecrease = [dFFcluster_chronicDecrease; currentCell_dFF];
-    end
-
-    % Combined clusters
-    if ismember(clusterID, [1, 4])
-        dFFcluster_AllchronicIncrease = [dFFcluster_AllchronicIncrease; currentCell_dFF];
-    end
-    if ismember(clusterID, [3, 6])
-        dFFcluster_AllchronicDecrease = [dFFcluster_AllchronicDecrease; currentCell_dFF];
-    end
-end
+% cellTypes = combinedTable_complete{:, 13};
+% cells = ["cells"; "perivascular"; "non-perivascular"];
+% [dFF_directions, dFF_directionCounts, dFF_directionLabels, dFF_clusterID, phaseParams_dFF] = clusterParams_CSD(paramTables_allPhases, cellTypes);
+% dFF_clusters = [dFF_directions; dFF_directionCounts];
+% dFF_clusters = [dFF_clusters, cells];
+% 
+% combinedTable_clusters = addvars(combinedTable_clusters, dFF_clusterID, 'NewVariableNames', 'dFF_clusterID');
+% 
+% % Convert vectors to tables
+% T_eventRate = table(eventRate_clusterID, 'VariableNames', {'eventRate_clusterID'});
+% T_dFF = table(dFF_clusterID, 'VariableNames', {'dFF_clusterID'});
+% 
+% dFF_clustersTable = [T_eventRate, T_dFF, phaseParams_dFF];
+% 
+% 
+% dFFcluster_acuteIncrease = []; %2
+% dFFcluster_chronicIncrease = []; %4
+% dFFcluster_chronicDecrease = []; %6
+% 
+% dFFcluster_AllchronicIncrease = []; %1,4
+% dFFcluster_AllchronicDecrease = []; %3,6
+% 
+% 
+% for cellCluster = 1:size(phaseParams_dFF, 1)
+%     clusterID = dFF_clustersTable.eventRate_clusterID(cellCluster);
+%     currentCell_dFF = phaseParams_dFF(cellCluster, :);  % row vector
+%     
+%     % Individual clusters
+%     if clusterID == 2
+%         dFFcluster_acuteIncrease = [dFFcluster_acuteIncrease; currentCell_dFF];
+%     end
+%     if clusterID == 4
+%         dFFcluster_chronicIncrease = [dFFcluster_chronicIncrease; currentCell_dFF];
+%     end
+%     if clusterID == 6
+%         dFFcluster_chronicDecrease = [dFFcluster_chronicDecrease; currentCell_dFF];
+%     end
+% 
+%     % Combined clusters
+%     if ismember(clusterID, [1, 4])
+%         dFFcluster_AllchronicIncrease = [dFFcluster_AllchronicIncrease; currentCell_dFF];
+%     end
+%     if ismember(clusterID, [3, 6])
+%         dFFcluster_AllchronicDecrease = [dFFcluster_AllchronicDecrease; currentCell_dFF];
+%     end
+% end
 
 
 %% Cluster 3x2 (up, none, down - acute & chronic)
 
-cellTypes = combinedTable_complete{:, 13};
-cells = ["cells"; "P"; "NP"];
-[directions, acuteLabels, chronicLabels, acuteIDs, chronicIDs, acuteCounts, chronicCounts, rates_mHz] = clusterWaves_CSD_acute_chronic(eventHz_byCell, cellTypes);
-
-clustersAcute = [directions; acuteCounts];
-clustersAcute = [clustersAcute, cells];
-clustersChronic = [directions; chronicCounts];
-clustersChronic = [clustersChronic, cells];
-
-combinedTable_clustersAcute = addvars(combinedTable_complete, acuteIDs, 'NewVariableNames', 'acuteIDs');
-combinedTable_clustersChronic = addvars(combinedTable_complete, chronicIDs, 'NewVariableNames', 'chronicIDs');
-
-% Chi-square - comparing the distribution between perivascular vs non-perivascular for each cluster
-[p_values_byCluster_acute, stats_byCluster_acute] = chi_square_plot(acuteCounts);
-[p_values_byCluster_chronic, stats_byCluster_chronic] = chi_square_plot(chronicCounts);
-
-% Run Chi-square test of independence - testing whether cluster and cell type are independent
-[~, p_values_All_acute, stats_All_acute] = chi2gof_from_table(acuteCounts);
-[~, p_values_All_chronic, stats_All_chronic] = chi2gof_from_table(chronicCounts);
-
-% Distribution Cell type x Cluster 
-[clustersPercentage_acute, roundedData_acute] = plotClusterDistributionByCellType(clustersAcute, directions, cells, outputDir);
-figure; bar(roundedData_acute,'stacked','DisplayName','roundedData_acute')
-legend(directions); xticklabels(cells(2:3)); title('Acute response by cell type')
-
-[clustersPercentage_chronic, roundedData_chronic] = plotClusterDistributionByCellType(clustersChronic, directions, cells, outputDir);
-figure; bar(roundedData_chronic,'stacked','DisplayName','roundedData_chronic')
-legend(directions); xticklabels(cells(2:3)); title('Chronic response by cell type')
-
-% Heatmaps ACUTE vs CHRONIC
-plotClusterHeatmap_zscore(combinedTable_clustersAcute, 1:2);
-plotClusterHeatmap_zscore(combinedTable_clustersChronic, 1:2);
- 
-% Compare baseline between chronic clusters %1,4,7x3,6,9
-preHz = str2double(eventHz_byCell(:, 2));
-preHz_cluster = [preHz, combinedTable_clusters.eventRate_clusterID];
-compareBaselineRates(preHz, acuteIDs, chronicIDs)
+% cellTypes = combinedTable_complete{:, 13};
+% cells = ["cells"; "P"; "NP"];
+% [directions, acuteLabels, chronicLabels, acuteIDs, chronicIDs, acuteCounts, chronicCounts, rates_mHz] = clusterWaves_CSD_acute_chronic(eventHz_byCell, cellTypes);
+% 
+% clustersAcute = [directions; acuteCounts];
+% clustersAcute = [clustersAcute, cells];
+% clustersChronic = [directions; chronicCounts];
+% clustersChronic = [clustersChronic, cells];
+% 
+% combinedTable_clustersAcute = addvars(combinedTable_complete, acuteIDs, 'NewVariableNames', 'acuteIDs');
+% combinedTable_clustersChronic = addvars(combinedTable_complete, chronicIDs, 'NewVariableNames', 'chronicIDs');
+% 
+% % Chi-square - comparing the distribution between perivascular vs non-perivascular for each cluster
+% [p_values_byCluster_acute, stats_byCluster_acute] = chi_square_plot(acuteCounts);
+% [p_values_byCluster_chronic, stats_byCluster_chronic] = chi_square_plot(chronicCounts);
+% 
+% % Run Chi-square test of independence - testing whether cluster and cell type are independent
+% [~, p_values_All_acute, stats_All_acute] = chi2gof_from_table(acuteCounts);
+% [~, p_values_All_chronic, stats_All_chronic] = chi2gof_from_table(chronicCounts);
+% 
+% % Distribution Cell type x Cluster 
+% [clustersPercentage_acute, roundedData_acute] = plotClusterDistributionByCellType(clustersAcute, directions, cells, outputDir);
+% figure; bar(roundedData_acute,'stacked','DisplayName','roundedData_acute')
+% legend(directions); xticklabels(cells(2:3)); title('Acute response by cell type')
+% 
+% [clustersPercentage_chronic, roundedData_chronic] = plotClusterDistributionByCellType(clustersChronic, directions, cells, outputDir);
+% figure; bar(roundedData_chronic,'stacked','DisplayName','roundedData_chronic')
+% legend(directions); xticklabels(cells(2:3)); title('Chronic response by cell type')
+% 
+% % Heatmaps ACUTE vs CHRONIC
+% plotClusterHeatmap_zscore(combinedTable_clustersAcute, 1:2);
+% plotClusterHeatmap_zscore(combinedTable_clustersChronic, 1:2);
+%  
+% % Compare baseline between chronic clusters %1,4,7x3,6,9
+% preHz = str2double(eventHz_byCell(:, 2));
+% preHz_cluster = [preHz, combinedTable_clusters.eventRate_clusterID];
+% compareBaselineRates(preHz, acuteIDs, chronicIDs)
 
 %% EVENT raster plot
 

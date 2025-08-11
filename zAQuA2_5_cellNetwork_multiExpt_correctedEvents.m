@@ -51,7 +51,7 @@ simultaneousMatrixDelaybyCell_average_all = cell(length(sortedFileNames), 1);
 listOfEvents_perCell_nodeOUTdegree_all = cell(length(sortedFileNames), 1);
 cellPairs_edges_distanceMicron_multipleAppearance_all = [];
 
-for experiment = 1:length(sortedFileNames)
+for experiment = 2:length(sortedFileNames)
  
     [data_analysis, data_aqua, data_CFU, AquA_fileName] = loadAnalysisData(sortedFileNames, experiment);
 
@@ -194,7 +194,7 @@ for experiment = 1:length(sortedFileNames)
             end
 
             % Calculate delay between current event and 1st simultanous event
-            element = simultaneousMatrixByEvent(currentEvent, simultaneousEvent); % Access the current element
+            %element = simultaneousMatrixByEvent(currentEvent, simultaneousEvent); % Access the current element
             % Perform operations on 'element'
             %fprintf('Element at (%d, %d): %d\n', currentEvent, simultaneousEvent, element);
             startingFrame_currentEvent = startingFrame{currentEvent};
@@ -203,6 +203,10 @@ for experiment = 1:length(sortedFileNames)
             if delay < 0
                delay = 0;
             end
+
+            % Convert delay to seconds using acquisition rate:
+            % 1.03 Hz ≈ 0.97 sec/frame
+            delay = delay * 0.97;
 
             if ismember(currentEvent, data_analysis.cols_to_delete)
                 % Nullify rows and columns for currentEvent
@@ -244,7 +248,7 @@ for experiment = 1:length(sortedFileNames)
                 else
                     simultaneousMatrixDelaybyCell{cellNumber_event, cellNumber_all} = delay;
                 end
-            else
+             else % ~isempty(simultaneousMatrixDelaybyCell{cellNumber_event, cellNumber_all})    
                 if ~isempty(cellToDelete_event)
                     if cellToDelete_event == cellNumber_event || cellNumber_all
                         simultaneousMatrixDelaybyCell{cellNumber_event, cellNumber_all} = ...
@@ -253,7 +257,10 @@ for experiment = 1:length(sortedFileNames)
                         simultaneousMatrixDelaybyCell{cellNumber_event, cellNumber_all} = ...
                         [simultaneousMatrixDelaybyCell{cellNumber_event, cellNumber_all}, delay];
                     end
-                end
+                else % isempty(cellToDelete_event) added 7/15/2025    
+                    simultaneousMatrixDelaybyCell{cellNumber_event, cellNumber_all} = ...
+                    [simultaneousMatrixDelaybyCell{cellNumber_event, cellNumber_all}, delay];
+                end                      
             end            
         end
 
@@ -480,14 +487,14 @@ for experiment = 1:length(sortedFileNames)
     cellPairs_edges_distanceMicron_multipleAppearance = getEdgeDistances(adjMatrix, centers_allCells, numCells, rowsWithSingleAppearance);
     cellPairs_edges_distanceMicron_multipleAppearance_all = [cellPairs_edges_distanceMicron_multipleAppearance_all; cellPairs_edges_distanceMicron_multipleAppearance];
 
-%     % Save network data
-%     fileTemp = extractBefore(AquA_fileName, "_AQuA2");
-%     pathTemp = extractBefore(pwd, "3."); 
-%     subfolderNetworkName = '4._network_propagation.mat'; % Define the subfolder name
-%     subfolderNetworkPath = fullfile(pathTemp, subfolderNetworkName); % Create the full path for the subfolder
-%     % Create the full file name with path
-%     networkFilename = fullfile(subfolderNetworkPath, strcat(fileTemp, '_network_propagation.mat'));
-%     %save(networkFilename, '-v7.3');
+    % Save network data
+    fileTemp = extractBefore(AquA_fileName, "_AQuA2");
+    pathTemp = extractBefore(pwd, "3."); 
+    subfolderNetworkName = '4._network_propagation.mat\new'; % Define the subfolder name
+    subfolderNetworkPath = fullfile(pathTemp, subfolderNetworkName); % Create the full path for the subfolder
+    % Create the full file name with path
+    networkFilename = fullfile(subfolderNetworkPath, strcat(fileTemp, '_network_propagation.mat'));
+    save(networkFilename, '-v7.3');
 end
 
 % Correlation - duration of events x number of simultaneous events

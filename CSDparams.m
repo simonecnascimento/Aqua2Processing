@@ -25,8 +25,8 @@ function paramTables = CSDparams(eventsByCell_experiment, data, variablesNames)
         paramName = string(variablesNames{p});
 
         % Preallocate a table for the current parameter
-        medianTable = cell2table(cell(length(rowsToProcess), 6), ...
-            'VariableNames', {'CellNumber', 'preCSD', 'duringCSD', 'postCSD', 'baseline_preCSD', 'cellType'});
+        medianTable = cell2table(cell(length(rowsToProcess), 7), ...
+            'VariableNames', {'CellNumber', 'preCSD', 'duringCSD', 'postCSD', 'baseline_preCSD', 'cellType', 'evtIndx'});
 
         % Copy the cell numbers into the first column
         medianTable.CellNumber = eventsByCell_experiment(:,1);

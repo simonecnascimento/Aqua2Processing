@@ -70,7 +70,7 @@ function resultantVector = sumEdgeVectors(G, nodePositions, rowsWithSingleAppear
         pathTemp = extractBefore(pwd, "3.");
         
         % Define subfolder path
-        subfolderVectorName = 'figures\all cells (except multinucleated)\network_digraph\resultingVector';
+        subfolderVectorName = 'figures\all cells (except multinucleated)\network_digraph\resultingVector\new';
         subfolderVectorPath = fullfile(pathTemp, subfolderVectorName);
         
         % Create the full file name with path

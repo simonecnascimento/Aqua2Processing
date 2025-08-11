@@ -1,7 +1,7 @@
 clear; close all; clc;
 
 % Set your experiment folder
-networkExperimentDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\4._network_propagation.mat';
+networkExperimentDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\4._network_propagation.mat\new';
 
 % Find all *_network_propagation.mat files
 FilesAll = dir(fullfile(networkExperimentDir, '*_network_propagation.mat'));
@@ -37,22 +37,22 @@ sortedFileNames = fileNames(idx);
 % Preallocate results
 experimentNames = sortedFileNames;
 numCellsAll = zeros(length(sortedFiles), 1);
-missingCellsAll = cell(length(sortedFiles), 1);
+numCellsAll_initial = zeros(length(sortedFiles), 1);
+eventsToDelete_all = cell(length(sortedFiles), 1);
+missingCellsNetworkAll = cell(length(sortedFiles), 1);
 numRemainingCells = zeros(length(sortedFiles), 1);
 percentRemaining = zeros(length(sortedFiles), 1);
 numMissingCellsAll = cell(length(sortedFiles), 1);
 
-% Loop through sorted files
+%% Loop through sorted files
 for i = 1:length(sortedFiles)
     filePath = fullfile(sortedFiles(i).folder, sortedFiles(i).name);
     fprintf('Loading file %d/%d: %s\n', i, length(sortedFiles), sortedFiles(i).name);
     
     % Load
     S = load(filePath);
-    
-    % Total cells
-    allCells = 1:S.numCells;
-    numCellsAll(i) = S.numCells;
+
+    numCellsAll_initial(i) = S.numCells; % updated total cells for this FOV
     
     % Clean per event
     cell_clean = cell(S.numEvents, 1);
@@ -62,37 +62,65 @@ for i = 1:length(sortedFiles)
         v5 = S.networkData.cellNumber_all_unique{j};    % current list
         cell_clean{j} = setdiff(v5(:)', v1);            % cleaned
     end
+
+    eventsToDelete = S.data_analysis.cols_to_delete;
+    eventsToDelete_all{i} = eventsToDelete;
+    allCells_initial = 1:S.numCells;
     
-    % Unique synchronized cells after removal
-    allSyncCells = unique([cell_clean{:}]);
-    
-    cellNumber_allToDelete = [];
-    cellNumber_allToDelete_unique = [];
-    for events = 1:size(S.data_analysis.eventsToDelete,2)
-        event = S.data_analysis.eventsToDelete(events);
-        cellNumber = find(cellfun(@(c) any(c == event), S.data_CFU.cfuInfo1(:, 2)));
-        cellNumber_allToDelete = [cellNumber_allToDelete; cellNumber];
-        cellNumber_allToDelete_unique = unique(cellNumber_allToDelete);
+    cellsToExclude = [];
+    for cellIdx = allCells_initial
+        eventsInCell = S.data_CFU.cfuInfo1{cellIdx, 2}; % events this cell belongs to
+        if all(ismember(eventsInCell, S.data_analysis.cols_to_delete))
+            cellsToExclude(end+1) = cellIdx;
+        end
+    end
+  
+    % Remove cellToExclude from cell_clean, so is not part of the simultaneous cells
+    for j = 1:S.numEvents
+        cell_clean{j} = setdiff(cell_clean{j}, cellsToExclude);
     end
 
-    allSyncCellsFinal = setdiff(allSyncCells, cellNumber_allToDelete_unique);
+    cell_clean(eventsToDelete) = [];
 
-   % Missing cells
-    missingCells = setdiff(allCells, allSyncCellsFinal);
-    missingCellsAll{i} = missingCells;
-    numMissingCells = size(missingCells,2);
-    numMissingCellsAll{i} = numMissingCells;
+    allCells = setdiff(allCells_initial, cellsToExclude);
+    numCellsAll(i) = numel(allCells); % updated total cells for this FOV
+
+    % Flatten all cells inside cell_clean into a single array
+    allCellsInCellClean = unique([cell_clean{:}]);
     
-    % Remaining and percentage
-    numRemainingCells(i) = S.numCells - numel(missingCells);
-    percentRemaining(i) = (numRemainingCells(i) / S.numCells) * 100;
+    % Check which cells are missing (cells present in allCells but not in cell_clean)
+    missingCells = setdiff(allCells, allCellsInCellClean);
+    numMissingCells = numel(missingCells);
+
+    % Store missing cells and counts
+    missingCellsNetworkAll{i} = missingCells;
+    numMissingCellsAll{i} = numMissingCells; % store as numeric for easy plotting
+
+
+    % Compute remaining and percentage
+    numRemainingCells(i) = numel(allCells) - numMissingCells;
+    percentRemaining(i) = (numRemainingCells(i) / numel(allCells)) * 100;
+    
+    % Display status
+    if numMissingCells == 0
+        disp('✅ All cells have connectivity.');
+    else
+        fprintf('❌ %d cells are missing connectivity (%.2f%% remaining).\n', ...
+            numMissingCells, percentRemaining(i));
+        disp('Missing cells:');
+        disp(missingCells);
+    end
+
 end
 
 % Create and display summary table
 T = table(experimentNames', ...
+    numCellsAll_initial, ...
+    eventsToDelete_all, ...
+    cellsToExclude,...
     numCellsAll, ...
-    missingCellsAll, ...
+    missingCellsNetworkAll, ...
     numMissingCellsAll, ...
     numRemainingCells, ...
     percentRemaining, ...
-    'VariableNames', {'ExperimentName', 'TotalCells', 'MissingCells', 'NumMissingCells', 'RemainingCells', 'PercentRemaining'});
+    'VariableNames', {'ExperimentName', 'TotalCellsInitial', 'EventsToDelete', 'CellsToExclude','TotalCells', 'MissingCellsNetwork', 'NumMissingCells', 'RemainingCells', 'PercentRemaining'});

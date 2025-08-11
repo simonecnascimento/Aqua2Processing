@@ -50,11 +50,15 @@ eventDuration_simultaneousEvents_all = cell(length(sortedFileNames), 1);
 simultaneousMatrixDelaybyCell_average_all = cell(length(sortedFileNames), 1);
 listOfEvents_perCell_nodeOUTdegree_all = cell(length(sortedFileNames), 1);
 cellPairs_edges_distanceMicron_multipleAppearance_all = [];
+percentageConnectedAll = cell(length(sortedFileNames), 1);
+NetworkTableAll_T = table(); % empty table
+%load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\percent_cells_with_network.mat');
 
 for experiment = 2:length(sortedFileNames)
  
     [data_analysis, data_aqua, data_CFU, AquA_fileName] = loadAnalysisData(sortedFileNames, experiment);
-
+    event_cell_Table = struct2cell(data_analysis.resultsTable)'; %+
+    
     % FILL TABLE WITH CELL NUMBERS, MAPS, AND EVENTS PROPAGATIONS
     % get network data from aqua
     nSimultanousEvents = num2cell(data_aqua.res.fts1.networkAll.nOccurSameTime);
@@ -114,7 +118,7 @@ for experiment = 2:length(sortedFileNames)
     startingFrame = data_analysis.resultsRaw.ftsTb(3,:); %starting frame of event to compute delay
     
     % Matrix by cell
-    numCells = size(data_CFU.cfuInfo1,1);
+    numCells = size(event_cell_Table,1);
     simultaneousMatrixDelaybyCell = cell(numCells, numCells);
     simultaneousMatrixDelaybyCell_average = cell(numCells, numCells);
 
@@ -125,7 +129,7 @@ for experiment = 2:length(sortedFileNames)
         networkData.propagationMap_event{currentEvent} = propagationMap_event;
     
         % find the cell related to the current event
-        cellNumber_event = find(cellfun(@(c) any(c == currentEvent), data_CFU.cfuInfo1(:, 2)));
+        cellNumber_event = find(cellfun(@(c) any(c == currentEvent), event_cell_Table(:,2)));
         networkData.cellNumber_event{currentEvent} = cellNumber_event;
 
         % find if cell is perivascular or nonPerivascular
@@ -150,7 +154,7 @@ for experiment = 2:length(sortedFileNames)
             networkData.propagationMap_all{currentEvent}{end+1} = propagationMap_all;
             
             % Find the cell of the specific event
-            cellNumber_all = find(cellfun(@(c) any(c == simultaneousEvent), data_CFU.cfuInfo1(:, 2)));
+            cellNumber_all = find(cellfun(@(c) any(c == simultaneousEvent), event_cell_Table(:,2)));
 
             if ~isempty(cellNumber_all)
                 if isempty(networkData.cellNumber_all{currentEvent})
@@ -213,9 +217,9 @@ for experiment = 2:length(sortedFileNames)
                 simultaneousMatrixDelayByEvent(currentEvent, :) = 0;
                 simultaneousMatrixDelayByEvent(:, currentEvent) = 0;
 
-                for cellToDelete = 1:length(data_CFU.cfuInfo1)
-                    if ismember(currentEvent, data_CFU.cfuInfo1{cellToDelete,2}) % Check if targetValue exists in column2{i}
-                        cellToDelete_event = data_CFU.cfuInfo1{cellToDelete,1}; % Get the corresponding value from column1
+                for cellToDelete = 1:length(event_cell_Table)
+                    if ismember(currentEvent, event_cell_Table{cellToDelete,2}) % Check if targetValue exists in column2{i}
+                        cellToDelete_event = event_cell_Table{cellToDelete,1}; % Get the corresponding value from column1
                         break; % Exit loop once found
                     end
                 end
@@ -225,9 +229,9 @@ for experiment = 2:length(sortedFileNames)
                     simultaneousMatrixDelayByEvent(simultaneousEvent, :) = 0;
                     simultaneousMatrixDelayByEvent(:, simultaneousEvent) = 0;
 
-                for cellToDelete = 1:length(data_CFU.cfuInfo1)
-                    if ismember(simultaneousEvent, data_CFU.cfuInfo1{cellToDelete,2}) % Check if targetValue exists in column2{i}
-                        cellToDelete_event = data_CFU.cfuInfo1{cellToDelete,1}; % Get the corresponding value from column1
+                for cellToDelete = 1:length(event_cell_Table)
+                    if ismember(simultaneousEvent, event_cell_Table{cellToDelete,2}) % Check if targetValue exists in column2{i}
+                        cellToDelete_event = event_cell_Table{cellToDelete,1}; % Get the corresponding value from column1
                         break; % Exit loop once found
                     end
                 end
@@ -289,7 +293,7 @@ for experiment = 2:length(sortedFileNames)
             simultaneousEvent_network_corrected = simultaneousEvents_network_corrected(b);
     
             % Check if the simultaneous event is in the list of cellEvents
-            if ismember(simultaneousEvent_network_corrected, data_CFU.cfuInfo1{cellNumber_event, 2})
+            if ismember(simultaneousEvent_network_corrected, event_cell_Table{cellNumber_event, 2})
                 % Add the index to the list of indices to remove
                 indicesToRemove = [indicesToRemove, b];
             end
@@ -299,7 +303,7 @@ for experiment = 2:length(sortedFileNames)
             networkData.propagationMap_network{currentEvent}{end+1} = propagationMap_network;
 
             % Find the cell of the specific event
-            cellNumber_network = find(cellfun(@(c) any(c == simultaneousEvent_network_corrected), data_CFU.cfuInfo1(:, 2)));
+            cellNumber_network = find(cellfun(@(c) any(c == simultaneousEvent_network_corrected), event_cell_Table(:, 2)));
 
             if ~isempty(cellNumber_network)
                 if isempty(networkData.cellNumber_network{currentEvent})
@@ -330,7 +334,7 @@ for experiment = 2:length(sortedFileNames)
             end
 
             % Find the map of the simultaneousEvent to the cell array
-            cellMap_network = data_CFU.cfuInfo1{cellNumber_network, 3};
+            cellMap_network = event_cell_Table{cellNumber_network, 3};
             networkData.cellMap_network{currentEvent}{end+1} = cellMap_network;
         end
         
@@ -422,8 +426,8 @@ for experiment = 2:length(sortedFileNames)
             cellNumber_matrix = [cell1,cell2]; 
 
             % Retrieve the cell maps for the two cells
-            cellMap1 = data_CFU.cfuInfo1{cell1, 3};
-            cellMap2 = data_CFU.cfuInfo1{cell2, 3};
+            cellMap1 = event_cell_Table{cell1, 3};
+            cellMap2 = event_cell_Table{cell2, 3};
             cellMap_matrix = {cellMap1,cellMap2};
  
             % Initialize the combined matrix with zeros
@@ -469,11 +473,20 @@ for experiment = 2:length(sortedFileNames)
         end
     end
 
-    % Digraph
+    NetworkTable = analyzeCellConnectivity(numCells, numEvents, networkData, data_analysis, data_CFU);
+    NetworkTableAll_T = [NetworkTableAll_T; NetworkTable.T];
+
+    % Event digraph
     [adjMatrix, centers_allCells, G, rowsWithSingleAppearance, nodeDegree] = plotCellDistanceNetwork(data_CFU, data_analysis, simultaneousMatrixDelaybyCell, simultaneousMatrixDelaybyCell_average, pwd, AquA_fileName);
 
+    % Cell digraph
+    [NetworkTable.adjMatrixCell, NetworkTable.nodeDegreeINOUT, NetworkTable.percentageConnected] = plotNodeConnectivityGraph(NetworkTable, data_CFU, data_analysis, simultaneousMatrixDelaybyCell_average, pwd, AquA_fileName);
+    % Collect across FOVs
+    percentageConnectedAll{experiment} = NetworkTable.percentageConnected;
+    NetworkTable.percentageConnectedAll = percentageConnectedAll;
+
     % Compute nodeOUTdegree x listOfEvents_perCell
-    listOfEvents_perCell = cellfun(@numel, data_CFU.cfuInfo1(:,2));
+    listOfEvents_perCell = cellfun(@numel, event_cell_Table(:,2));
     listOfEvents_perCell_nodeOUTdegree = [listOfEvents_perCell, nodeDegree];
     listOfEvents_perCell_nodeOUTdegree_all{experiment} = listOfEvents_perCell_nodeOUTdegree;
     
@@ -497,6 +510,9 @@ for experiment = 2:length(sortedFileNames)
     save(networkFilename, '-v7.3');
 end
 
+% Distribution - percentage of cells connected to other cells
+percentageConnectedAll_flat = extractPercentageConnectedAll(NetworkTable);
+
 % Correlation - duration of events x number of simultaneous events
 correlationBetweenEventDurationAndNumberSimultaneousEvents = computeEventDurationCorrelation(eventDuration_simultaneousEvents_all);
 
@@ -507,5 +523,5 @@ cleanDataDistances_um = cellPairsDistanceDistribution(allUpperTriValues);
 correlationBetweenCellPairsAndEdge = correlationBetweenCellPairsAndEdge(cellPairs_edges_distanceMicron_multipleAppearance_all);
 
 % Correlation - list of events x node OUTdegree
-correlationBetweenNumberofEventsAndOUTdegreeNode = correlationBetweenNumberofEventsAndOUTdegreeNode(listOfEvents_perCell_nodeOUTdegree_all);
+correlationNumberofEventsAndOUTdegreeNode = correlationBetweenNumberofEventsAndOUTdegreeNode(listOfEvents_perCell_nodeOUTdegree_all);
 

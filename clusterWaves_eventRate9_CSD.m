@@ -1,4 +1,4 @@
-function [directions, directionCounts, directionLabels, clusterID, rates_mHz, rates_mHz_clusterID] = clusterWaves_CSD(eventHz_byCell, cellTypes)
+function [directions, directionCounts, directionLabels, clusterID, rates_mHz, rates_mHz_clusterID] = clusterWaves_eventRate9_CSD(eventHz_byCell, cellTypes)
 %CLASSIFYEVENTRATES Classifies cells into 9 groups based on event rate changes.
 %   Input:
 %     eventHz_byCell - Nx4 string array where:
