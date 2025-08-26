@@ -60,15 +60,15 @@ end
 % % Plot heatmap of conditional probabilities (3x3)
 % [All_matrix, P_matrix, NP_matrix] = plotConditionalProbabilities(eventRate_directionCounts, outputDir);
 % 
-% % Distributions 
-% % Plot distribution Cell type x Cluster
-% [clustersPercentage, roundedData] = plotClusterDistributionByCellType(eventRate_clusters, eventRate_directions, cells, outputDir);
-% 
-% % Plot distribution clusters x FOV
-% plotFOVDistributionByCluster(combinedTable_clusters, outputDir);
-% 
-% % Plot distribution FOV x cluster
-% plotClusterDistributionByFOV(combinedTable_clusters, outputDir);
+% Distributions 
+% Plot distribution Cell type x Cluster
+[clustersPercentage, roundedData] = plotClusterDistributionByCellType(eventRate_clusters, eventRate_directions, cells, outputDir);
+
+% Plot distribution clusters x FOV
+plotFOVDistributionByCluster(combinedTable_clusters, outputDir);
+
+% Plot distribution FOV x cluster
+plotClusterDistributionByFOV(combinedTable_clusters, outputDir);
 % 
 % %create heatmap
 % plotClusterHeatmap_FOVnormalized(combinedTable_clusters, [1:9], sortedFileNames, outputDir); %[1,2, 5:9] BIBN by FOV
@@ -91,7 +91,6 @@ eventRate_clusters = [eventRate_clusters, cells];
 
 combinedTable_clusters = addvars(combinedTable_complete, eventRate_clusterID, 'NewVariableNames', 'eventRate_clusterID');
 
-
 % % Example 1: Acute Increase
 % AcuteIncrease = [7 7; 3 4];
 % plotChi2Residuals(AcuteIncrease, {'P','NP'}, {'Persistent Increase','Persistent Decrease'});
@@ -105,10 +104,23 @@ combinedTable_clusters = addvars(combinedTable_complete, eventRate_clusterID, 'N
 % plotChi2Residuals(PersistentDecrease, {'P','NP'}, {'Acute Increase','Acute No Change'});
 % 
 
+% max dFF during CSD
+duringCSD_maxDFF = table2cell(paramTables_allPhases.Max_dFF(:,3));
+
 % Assuming rates_mHz is Nx3 (columns: preCSD, duringCSD, postCSD)
 combinedTable_clusters = addvars(combinedTable_clusters, ...
-    rates_mHz(:,1), rates_mHz(:,2), rates_mHz(:,3), ...
-    'NewVariableNames', {'eventRate_preCSD', 'eventRate_duringCSD', 'eventRate_postCSD'});
+    rates_mHz(:,1), rates_mHz(:,2), rates_mHz(:,3), duringCSD_maxDFF,...
+    'NewVariableNames', {'eventRate_preCSD', 'eventRate_duringCSD', 'eventRate_postCSD', 'duringCSD_maxDFF'});
+
+duringCSD_maxDFF_all = [];
+for x = 1:size(combinedTable_clusters,1)
+    if combinedTable_clusters.eventRate_clusterID(x) == 2
+        duringCSD_maxDFF_x = combinedTable_clusters.duringCSD_maxDFF(x);
+        duringCSD_maxDFF_all = [duringCSD_maxDFF_all; duringCSD_maxDFF_x];
+    end
+end
+
+
 
 % % without separating by cell type
 % rate_cluster_acuteIncrease = []; %2
@@ -214,8 +226,6 @@ for cellCluster = 1:size(rates_mHz, 1)
 %         end
 %     end
 end
-
-
 
 % Initialize group labels
 eventRateGroup = strings(height(combinedTable_clusters), 1);
@@ -369,7 +379,7 @@ dFF_table = table(combinedTable_clusters.dFF(:), 'VariableNames', {'dFF'});
 
 % Horizontally concatenate the tables
 rasterTable = [startingFrames_table, clusterID_table, dFF_table];
-rasterTable_sorted = plotRasterByCluster(rasterTable, [2,4,6], experiment); %[2, 4, 9]
+rasterTable_sorted = plotRasterByCluster(rasterTable, [2,4,6], experiment);
 
 %%
 load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\0.49resolution_correct\AQuA2_data_fullCraniotomy_CSD.mat')

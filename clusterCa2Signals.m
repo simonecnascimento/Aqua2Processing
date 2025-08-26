@@ -29,12 +29,16 @@ function [optimal_k, idx, features, cluster_means, count_k1, count_k2] = cluster
 
         % 1. Detrend the signal (remove systematic drifts like tissue drift, bleaching)
         detrended_signal = detrend(dFF_all(w, :));
-        %figure; plot(dFF_all(w, :));
-        %figure; plot(detrended_signal);
-
+       
         % 2. Apply Savitzky-Golay filter for smoothing (window size 5, polynomial order 3)
-        smoothed_signal = sgolayfilt(detrended_signal, poly_order, frame_size);
-        %figure; plot(smoothed_signal);
+        smoothed_signal = sgolayfilt(detrended_signal, poly_order, frame_size); %frame_size
+%         figure; 
+%         plot(dFF_all(w, :));
+%         hold on;
+%         plot(detrended_signal);
+%         hold on; 
+%         plot(smoothed_signal);
+%         legend('raw', 'detrended', 'smoothed');
 
         % 3. Fourier Transformation: Calculate the power spectrum density (PSD)
         L = length(smoothed_signal);  % Length of the signal
@@ -50,6 +54,8 @@ function [optimal_k, idx, features, cluster_means, count_k1, count_k2] = cluster
 
         % Compute Power Spectrum Density (PSD)
         psd = P1.^2;
+%         figure;
+%         plot(f, psd); xlabel('f (Hz)')
         psd_all = [psd_all; psd];
 
         % 4. Peak Detection (using MPP and HPA ruleset)

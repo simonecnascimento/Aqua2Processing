@@ -39,9 +39,10 @@ function [directions, directionCounts, directionLabels, clusterID, rates_mHz, ra
     labels1(increasingEventsChange1) = "increasing";
     labels1(noChangeEventsChange1) = "noChange";
 
-    labels2 = repmat("noChange", size(rates_mHz, 1), 1);
+    %labels2 = repmat("noChange", size(rates_mHz, 1), 1);
     labels2(increasingEventsChange2) = "increasing";
     labels2(decreasingEventsChange2) = "decreasing";
+    labels2(noChangeEventsChange2) = "noChange";
 
     % Preallocate
     directionLabels = strings(size(rates_mHz,1), 1)';

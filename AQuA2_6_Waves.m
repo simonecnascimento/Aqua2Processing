@@ -67,7 +67,7 @@ plotFFT_all(dFF_all, Fs);  % dFF_all is your matrix of signals for all cells
 % 1. Apply Savitzky-Golay filtering only for visualization, not for clustering.
 % Optimize Sgolay params - takes very long time to optimize both params
 poly_orders = 1:6; 
-frame_sizes = 5:2:927; 
+frame_sizes = 5:2:90; %927 
 [best_poly_order, best_frame_size, best_snr, best_filtered_signals] = optimizeSgolayParams(dFF_all_sorted, poly_orders, frame_sizes);
 
 % Check best frame size
@@ -83,8 +83,8 @@ figure; bar(unique_vals_order, counts, 'FaceColor', 'b');
 % 2. Cluster signals
 % Define your inputs
 maxClusters = 10; % Test up to 10 clusters
-poly_order = 6;  % Range of polynomial orders for Savitzky-Golay filter
-frame_size = 7;  % Frame sizes (odd numbers)
+poly_order = 6; %6 % Range of polynomial orders for Savitzky-Golay filter
+frame_size = 7; %7 % Frame sizes (odd numbers)
 % Assuming 'dFF_all' is your matrix of Ca2+ signals (cells x time points)
 [optimal_k, idx, features, cluster_means, count_k1, count_k2] = clusterCa2Signals(dFF_all_sorted, Fs, poly_order, frame_size, maxClusters);
 
