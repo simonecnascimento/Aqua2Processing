@@ -129,7 +129,12 @@ for experiment = 2:length(sortedFileNames)
         networkData.propagationMap_event{currentEvent} = propagationMap_event;
     
         % find the cell related to the current event
-        cellNumber_event = find(cellfun(@(c) any(c == currentEvent), event_cell_Table(:,2)));
+        rowIdx = find(cellfun(@(c) any(c == currentEvent), event_cell_Table(:,2)));
+        % Get the corresponding values from column 1
+        cellNumber_event = event_cell_Table(rowIdx, 1);
+        % If you want plain numbers instead of cell
+        cellNumber_event = cell2mat(cellNumber_event);
+
         networkData.cellNumber_event{currentEvent} = cellNumber_event;
 
         % find if cell is perivascular or nonPerivascular
@@ -154,7 +159,11 @@ for experiment = 2:length(sortedFileNames)
             networkData.propagationMap_all{currentEvent}{end+1} = propagationMap_all;
             
             % Find the cell of the specific event
-            cellNumber_all = find(cellfun(@(c) any(c == simultaneousEvent), event_cell_Table(:,2)));
+            rowIdx_simultaneous = find(cellfun(@(c) any(c == simultaneousEvent), event_cell_Table(:,2)));
+            % Get the corresponding values from column 1
+            cellNumber_all = event_cell_Table(rowIdx_simultaneous, 1);
+            % If you want plain numbers instead of cell
+            cellNumber_all = cell2mat(cellNumber_all);
 
             if ~isempty(cellNumber_all)
                 if isempty(networkData.cellNumber_all{currentEvent})
@@ -289,7 +298,7 @@ for experiment = 2:length(sortedFileNames)
         indicesToRemove = [];
 
         %remove current event from network events
-        for b = 1:length(simultaneousEvents_network_corrected)
+        for b = 2:length(simultaneousEvents_network_corrected)
             simultaneousEvent_network_corrected = simultaneousEvents_network_corrected(b);
     
             % Check if the simultaneous event is in the list of cellEvents
@@ -509,17 +518,17 @@ for experiment = 2:length(sortedFileNames)
     networkFilename = fullfile(subfolderNetworkPath, strcat(fileTemp, '_network_propagation.mat'));
     save(networkFilename, '-v7.3');
 end
-
+%%
 % Distribution - percentage of cells connected to other cells
 percentageConnectedAll_flat = extractPercentageConnectedAll(NetworkTable);
 
-% Correlation - duration of events x number of simultaneous events
+% Correlation - duration of events x number of simultaneous events (Duration x number)
 correlationBetweenEventDurationAndNumberSimultaneousEvents = computeEventDurationCorrelation(eventDuration_simultaneousEvents_all);
 
-% Distribution - distances between cells with concurrent activity
+% Distribution - distances between cells with concurrent activity  (Distance x number of cell pairs)
 cleanDataDistances_um = cellPairsDistanceDistribution(allUpperTriValues);
 
-% Correlation - cell pair distance x edge
+% Correlation - cell pair distance x edge  (Distance x delay)
 correlationBetweenCellPairsAndEdge = correlationBetweenCellPairsAndEdge(cellPairs_edges_distanceMicron_multipleAppearance_all);
 
 % Correlation - list of events x node OUTdegree
