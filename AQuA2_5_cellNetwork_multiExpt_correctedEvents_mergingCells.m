@@ -116,6 +116,8 @@ for experiment = 2:length(sortedFileNames)
     [numRows, numCols] = size(simultaneousMatrixByEvent);
     simultaneousMatrixDelayByEvent = zeros(numEvents, numEvents);
     startingFrame = data_analysis.resultsRaw.ftsTb(3,:); %starting frame of event to compute delay
+
+    event_cell_Table = fillMissingCellRows(event_cell_Table, data_CFU);
     
     % Matrix by cell
     numCells = size(event_cell_Table,1);
