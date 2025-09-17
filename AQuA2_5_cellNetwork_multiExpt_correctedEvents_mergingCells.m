@@ -298,7 +298,7 @@ for experiment = 2:length(sortedFileNames)
         indicesToRemove = [];
 
         %remove current event from network events
-        for b = 2:length(simultaneousEvents_network_corrected)
+        for b = 1:length(simultaneousEvents_network_corrected)
             simultaneousEvent_network_corrected = simultaneousEvents_network_corrected(b);
     
             % Check if the simultaneous event is in the list of cellEvents
@@ -312,7 +312,11 @@ for experiment = 2:length(sortedFileNames)
             networkData.propagationMap_network{currentEvent}{end+1} = propagationMap_network;
 
             % Find the cell of the specific event
-            cellNumber_network = find(cellfun(@(c) any(c == simultaneousEvent_network_corrected), event_cell_Table(:, 2)));
+            rowIdx_network = find(cellfun(@(c) any(c == simultaneousEvent_network_corrected), event_cell_Table(:, 2)));
+            % Extract the corresponding values from column 1
+            cellNumber_network = event_cell_Table(rowIdx_network, 1);
+            % If you want plain numbers instead of cell
+            cellNumber_network = cell2mat(cellNumber_network);
 
             if ~isempty(cellNumber_network)
                 if isempty(networkData.cellNumber_network{currentEvent})
@@ -459,9 +463,16 @@ for experiment = 2:length(sortedFileNames)
             distance = computePairwiseCenterDistances({cellMap1, cellMap2});
             % Logical indexing to exclude NaN values
             nonNaNValues = distance(~isnan(distance));
-            firstValue = nonNaNValues(1); 
-            convertedValue = firstValue * conversionFactor;
-            
+
+            if ~isempty(nonNaNValues)
+                firstValue = nonNaNValues(1);
+                convertedValue = firstValue * conversionFactor;
+            else
+                % Handle the case when no valid value exists
+                firstValue = NaN;
+                convertedValue = NaN;
+            end
+           
             % Fill the matrix symmetrically
             pairwiseDistanceMatrix(cell1, cell2) = convertedValue;
             pairwiseDistanceMatrix(cell2, cell1) = convertedValue; % Symmetric
@@ -486,7 +497,7 @@ for experiment = 2:length(sortedFileNames)
     NetworkTableAll_T = [NetworkTableAll_T; NetworkTable.T];
 
     % Event digraph
-    [adjMatrix, centers_allCells, G, rowsWithSingleAppearance, nodeDegree] = plotCellDistanceNetwork(data_CFU, data_analysis, simultaneousMatrixDelaybyCell, simultaneousMatrixDelaybyCell_average, pwd, AquA_fileName);
+    [adjMatrix, centers_allCells, G, adjMatrixValid, centers_sub, rowsWithSingleAppearance, nodeDegree] = plotCellDistanceNetwork(data_CFU, data_analysis, event_cell_Table, simultaneousMatrixDelaybyCell, simultaneousMatrixDelaybyCell_average, pwd, AquA_fileName);
 
     % Cell digraph
     [NetworkTable.adjMatrixCell, NetworkTable.nodeDegreeINOUT, NetworkTable.percentageConnected] = plotNodeConnectivityGraph(NetworkTable, data_CFU, data_analysis, simultaneousMatrixDelaybyCell_average, pwd, AquA_fileName);
@@ -500,10 +511,10 @@ for experiment = 2:length(sortedFileNames)
     listOfEvents_perCell_nodeOUTdegree_all{experiment} = listOfEvents_perCell_nodeOUTdegree;
     
     % Plot the resultant vector
-    resultantVector = sumEdgeVectors(G, centers_allCells, rowsWithSingleAppearance, pwd, AquA_fileName);
+    %resultantVector = sumEdgeVectors(G, centers_allCells, rowsWithSingleAppearance, pwd, AquA_fileName);
 
     % Identify connected networks
-    saveConnectedNetworks(G, centers_allCells, pwd, AquA_fileName);
+    saveConnectedNetworks(G, centers_sub, pwd, AquA_fileName);
 
     % Compute cell pair distance x edge/delay
     cellPairs_edges_distanceMicron_multipleAppearance = getEdgeDistances(adjMatrix, centers_allCells, numCells, rowsWithSingleAppearance);
