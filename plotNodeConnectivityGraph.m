@@ -25,12 +25,11 @@ function [adjMatrixCell, nodeDegreeINOUT, percentageConnected] = plotNodeConnect
     end
 
     % Create digraph
-    G = digraph(adjMatrixCell);
-    
-    % Use only valid cells
+    % Filter adjacency matrix for only existing cells
     validCells = data_analysis.validCells;
-    G.Nodes.Name = cellstr(string(validCells(:)));
-    nodeNames = G.Nodes.Name;
+    adjMatrixValid = adjMatrixCell(validCells, validCells);
+    nodeTable = table(cellstr(string(validCells(:))), 'VariableNames', {'Name'});
+    G = digraph(adjMatrixValid, nodeTable);
 
     % Compute cell centers for valid cells
     centers_allCells = [];
