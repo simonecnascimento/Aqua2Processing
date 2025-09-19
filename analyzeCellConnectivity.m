@@ -20,6 +20,7 @@ function NetworkTable = analyzeCellConnectivity(numCells, numEvents, networkData
 ExperimentName = data_analysis.fileTemp;
 
 % Store initial total cells
+numCells = numel(data_analysis.validCells);
 NetworkTable.numCellsAll_initial = numCells;
 
 % Clean cells per event by removing cells to exclude
@@ -62,8 +63,22 @@ NetworkTable.numCellsAll = numel(NetworkTable.allCells);
 % Flatten all cleaned cells into unique array
 NetworkTable.allCellsInCellClean = unique([NetworkTable.cell_clean{:}]);
 
+% % Find missing cells (present in allCells but missing in cleaned cells)
+% NetworkTable.missingCells = setdiff(NetworkTable.allCells, NetworkTable.allCellsInCellClean);
+% NetworkTable.numMissingCells = numel(NetworkTable.missingCells);
+
 % Find missing cells (present in allCells but missing in cleaned cells)
-NetworkTable.missingCells = setdiff(NetworkTable.allCells, NetworkTable.allCellsInCellClean);
+rawMissing = setdiff(NetworkTable.allCells, NetworkTable.allCellsInCellClean);
+
+% Exclude cells that were merged into others
+if isfield(data_analysis, 'cellsToMerge') && ~isempty(data_analysis.cellsToMerge)
+    % data_analysis.cellsToMerge is assumed to be N x 2 array: [sourceCell mergedIntoCell]
+    mergedCells = unique(data_analysis.cellsToMerge(:));  % flatten all merged cells
+    NetworkTable.missingCells = setdiff(rawMissing, mergedCells);  % only truly missing
+else
+    NetworkTable.missingCells = rawMissing;
+end
+
 NetworkTable.numMissingCells = numel(NetworkTable.missingCells);
 
 % Compute remaining cells and percentage

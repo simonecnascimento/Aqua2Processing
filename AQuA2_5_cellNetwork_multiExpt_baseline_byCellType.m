@@ -39,7 +39,7 @@ validCells = table();
 validCellsListAll = table();
 
 % Loop through each MAT file
-for file = 3:length(sortedFileNames)
+for file = 1:length(sortedFileNames)
     % Load the current experiment's data
     fileName = sortedFileNames{file};
     experimentData = load(fullfile(experimentDir, fileName));
@@ -95,21 +95,38 @@ for file = 3:length(sortedFileNames)
     interaction_cellIDs = [];
     interaction_categories = [];
     
-    % Expand cellNumber_all into rows
     for k = 1:height(allCellsNetwork_cleaned)
-        if ~isempty(allCellsNetwork_cleaned.CellNumbers_all{k}) && ~isempty(allCellsNetwork_cleaned.InteractionCategory{k})
-            ids = allCellsNetwork_cleaned.CellNumbers_all{k};
-            catStr = allCellsNetwork_cleaned.InteractionCategory{k};
-            cats = repmat({catStr}, numel(ids), 1);
-            
-            interaction_cellIDs = [interaction_cellIDs; ids(:)];
-            interaction_categories = [interaction_categories; cats];
+        ids   = allCellsNetwork_cleaned.CellNumbers_all{k};
+        types = allCellsNetwork_cleaned.CellTypes_all{k};
+    
+        if isempty(ids), continue; end
+    
+        for j = 2:numel(ids)
+            thisID   = ids(j);
+            thisType = types(j);
+    
+            % Partner types = everyone except this cell
+            partnerTypes = types(setdiff(1:numel(types), j));
+    
+            if isempty(partnerTypes)
+                category = 'none';
+            elseif all(partnerTypes == 0)
+                category = 'P';   % only partners are perivascular
+            elseif all(partnerTypes == 2)
+                category = 'NP';  % only partners are non-perivascular
+            else
+                category = 'mixed'; % partners include both
+            end
+    
+            % Append
+            interaction_cellIDs   = [interaction_cellIDs; thisID];
+            interaction_categories = [interaction_categories; {category}];
         end
     end
-    
-    % Create table of one row per cell
+
+    % Create expanded table (one row per cell per event)
     expandedTable = table(interaction_cellIDs, interaction_categories, ...
-        'VariableNames', {'CellID', 'InteractionCategory'});
+    'VariableNames', {'CellID', 'InteractionCategory'});
     
     % Count occurrences by CellID + InteractionCategory
     network_cells = groupsummary(expandedTable, {'CellID', 'InteractionCategory'}, @numel);
@@ -138,11 +155,13 @@ for file = 3:length(sortedFileNames)
     validCellsList = experimentData.data_analysis.resultsFinal.("Cell ID");
     validCellsListTable = table(repmat({fileName}, numberValidCells_withMN,1 ), validCellsList, 'VariableNames', {'ExperimentID', 'ValidCells'});
     validCellsListAll = [validCellsListAll; validCellsListTable];
+
 end
 
 sum(validCells.NumValidCells)
-% Save the combined table to a MAT file
-save('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\all_network_cells.mat');
+
+%% Save the combined table to a MAT file
+save('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\all_network_cells.mat', '-v7.3');
 
 %%
 % Example: myTable with columns: cellID, ..., fileName
@@ -211,210 +230,3 @@ for t = 1:length(cellTypes)
 end
 
 disp(summaryCounts)
-
-
-%%
-% Initialize summary table
-summaryCounts = table('Size',[length(cellTypes),6], ...
-                      'VariableTypes', repmat("double",1,6), ...
-                      'VariableNames', {'OnlyP','OnlyNP','OnlyMixed','NP_or_Mixed','P_or_Mixed','TotalCells'}, ...
-                      'RowNames', {'Perivascular_0','NonPerivascular_2'});
-
-for t = 1:length(cellTypes)
-    typeFilter = allNetworkCells.cellType == cellTypes(t);
-    
-    % Cells per category
-    P_cells       = unique(allNetworkCells.UniqueCellID(typeFilter & strcmp(allNetworkCells.InteractionCategory,'P')));
-    NP_cells      = unique(allNetworkCells.UniqueCellID(typeFilter & strcmp(allNetworkCells.InteractionCategory,'NP')));
-    mixed_cells   = unique(allNetworkCells.UniqueCellID(typeFilter & strcmp(allNetworkCells.InteractionCategory,'mixed')));
-    
-    % Mutually exclusive counts
-    only_P     = setdiff(P_cells, union(NP_cells, mixed_cells));
-    only_NP    = setdiff(NP_cells, union(P_cells, mixed_cells));
-    only_mixed = setdiff(mixed_cells, union(P_cells, NP_cells));
-    
-    % Combined categories
-    NP_or_mixed = union(NP_cells, mixed_cells);
-    P_or_mixed  = union(P_cells, mixed_cells);
-    
-    % Total unique cells of this type
-    totalCells = numel(unique(allNetworkCells.UniqueCellID(typeFilter)));
-    
-    % Save in table
-    summaryCounts{t,:} = [numel(only_P), numel(only_NP), numel(only_mixed), ...
-                          numel(NP_or_mixed), numel(P_or_mixed), totalCells];
-end
-
-disp(summaryCounts)
-%%
-
-% Initialize summary table with extra columns
-summaryCounts = table('Size',[length(cellTypes),8], ...
-                      'VariableTypes', repmat("double",1,8), ...
-                      'VariableNames', {'OnlyP','OnlyNP','OnlyMixed','NP_or_Mixed','P_or_Mixed','P_and_Mixed','NP_and_Mixed','TotalCells'}, ...
-                      'RowNames', {'Perivascular_0','NonPerivascular_2'});
-
-for t = 1:length(cellTypes)
-    typeFilter = allNetworkCells.cellType == cellTypes(t);
-    
-    % Cells per category
-    P_cells       = unique(allNetworkCells.UniqueCellID(typeFilter & strcmp(allNetworkCells.InteractionCategory,'P')));
-    NP_cells      = unique(allNetworkCells.UniqueCellID(typeFilter & strcmp(allNetworkCells.InteractionCategory,'NP')));
-    mixed_cells   = unique(allNetworkCells.UniqueCellID(typeFilter & strcmp(allNetworkCells.InteractionCategory,'mixed')));
-    
-    % Mutually exclusive counts
-    only_P     = setdiff(P_cells, union(NP_cells, mixed_cells));
-    only_NP    = setdiff(NP_cells, union(P_cells, mixed_cells));
-    only_mixed = setdiff(mixed_cells, union(P_cells, NP_cells));
-    
-    % Combined categories
-    NP_or_mixed  = union(NP_cells, mixed_cells);
-    P_or_mixed   = union(P_cells, mixed_cells);
-    P_and_mixed  = intersect(P_cells, mixed_cells);  
-    NP_and_mixed = intersect(NP_cells, mixed_cells);  % <-- NP and mixed
-    
-    % Total unique cells of this type
-    totalCells = numel(unique(allNetworkCells.UniqueCellID(typeFilter)));
-    
-    % Save in table
-    summaryCounts{t,:} = [numel(only_P), numel(only_NP), numel(only_mixed), ...
-                          numel(NP_or_mixed), numel(P_or_mixed), numel(P_and_mixed), numel(NP_and_mixed), totalCells];
-end
-
-disp(summaryCounts)
-
-
-%%
-% Ensure missing InteractionCategory entries are "none"
-allNetworkCells.InteractionCategory(cellfun(@isempty, allNetworkCells.InteractionCategory)) = {'none'};
-
-% Unique cell IDs
-allNetworkCells.UniqueCellID = strcat(allNetworkCells.ExperimentID, "_", string(allNetworkCells.CellID));
-
-% Define cell types
-cellTypes = [0, 2];
-
-% Initialize summary table
-summaryCounts = table('Size',[length(cellTypes),5], ...
-                      'VariableTypes', repmat("double",1,5), ...
-                      'VariableNames', {'OnlyP','OnlyNP','OnlyMixed','NPorMixed','TotalCells'}, ...
-                      'RowNames', {'Perivascular_0','NonPerivascular_2'});
-
-for t = 1:length(cellTypes)
-    typeFilter = allNetworkCells.cellType == cellTypes(t);
-    
-    % Cells per category
-    P_cells       = unique(allNetworkCells.UniqueCellID(typeFilter & strcmp(allNetworkCells.InteractionCategory,'P')));
-    NP_cells      = unique(allNetworkCells.UniqueCellID(typeFilter & strcmp(allNetworkCells.InteractionCategory,'NP')));
-    mixed_cells   = unique(allNetworkCells.UniqueCellID(typeFilter & strcmp(allNetworkCells.InteractionCategory,'mixed')));
-    
-    % Mutually exclusive
-    only_P     = setdiff(P_cells, union(NP_cells, mixed_cells));
-    only_NP    = setdiff(NP_cells, union(P_cells, mixed_cells));
-    only_mixed = setdiff(mixed_cells, union(P_cells, NP_cells));
-    NP_or_mixed = union(NP_cells, mixed_cells);
-    
-    % Total unique cells of this type
-    totalCells = numel(unique(allNetworkCells.UniqueCellID(typeFilter)));
-    
-    % Save in table
-    summaryCounts{t,:} = [numel(only_P), numel(only_NP), numel(only_mixed), numel(NP_or_mixed), totalCells];
-end
-
-disp(summaryCounts)
-%%
-
-allNetworkCells.UniqueCellID = strcat(allNetworkCells.ExperimentID, "_", string(allNetworkCells.CellID));
-
-[uniqueCells, ~, G] = unique(allNetworkCells.UniqueCellID); % uniqueCells = original cell IDs
-counts = accumarray(G, 1); % how many times each unique cell appears
-
-cellTypes   = splitapply(@(x) x(1), allNetworkCells.cellType, G); % each cell has only one type
-categories  = splitapply(@(x) {unique(x)}, allNetworkCells.InteractionCategory, G);
-
-perCellSummary = table(uniqueCells, cellTypes, categories, ...
-    'VariableNames', {'UniqueCellID','cellType','Categories'});
-
-% Ensure missing InteractionCategory entries are "none"
-allNetworkCells.InteractionCategory(cellfun(@isempty, allNetworkCells.InteractionCategory)) = {'none'};
-
-% Define types and categories
-cellTypes   = [0, 2];
-categories  = {'P','NP','mixed','none'};
-
-% Initialize table
-contingencyCounts = zeros(length(cellTypes), length(categories));
-
-for t = 1:length(cellTypes)
-    for c = 1:length(categories)
-        % Count *unique cells* of this type in this category
-        uniqueCells = unique(allNetworkCells.UniqueCellID( ...
-            allNetworkCells.cellType == cellTypes(t) & ...
-            strcmp(allNetworkCells.InteractionCategory, categories{c})));
-        contingencyCounts(t,c) = numel(uniqueCells);
-    end
-end
-
-contingencyTable = array2table(contingencyCounts, ...
-    'VariableNames', categories, ...
-    'RowNames', {'Perivascular_0','NonPerivascular_2'});
-
-
-% Cells in NP or mixed
-NP_or_mixed = unique(allNetworkCells.UniqueCellID( ...
-    ismember(allNetworkCells.InteractionCategory, {'NP','mixed'})));
-
-% Cells only in mixed
-only_mixed = setdiff( ...
-    unique(allNetworkCells.UniqueCellID(strcmp(allNetworkCells.InteractionCategory,'mixed'))), ...
-    unique(allNetworkCells.UniqueCellID(strcmp(allNetworkCells.InteractionCategory,'NP'))));
-
-fprintf('Cells in NP or mixed: %d\n', numel(NP_or_mixed));
-fprintf('Cells only in mixed: %d\n', numel(only_mixed));
-
-
-
-% Ensure there is an 'InteractionCategory' column for empty rows
-% If there are any cells not in the network_cells table, assign 'none'
-allNetworkCells.InteractionCategory(cellfun(@isempty, allNetworkCells.InteractionCategory)) = {'none'};
-
-% Define unique types and categories
-cellTypes = [0, 2];
-categories = {'P','NP','mixed','none'};
-
-% Initialize the 2x4 table
-contingencyCounts = zeros(length(cellTypes), length(categories));
-
-% Loop through each cell type and category to count occurrences
-for file = 1:length(cellTypes)
-    for j = 1:length(categories)
-        contingencyCounts(file,j) = sum(allNetworkCells.cellType == cellTypes(file) & ...
-                                      strcmp(allNetworkCells.InteractionCategory, categories{j}));
-    end
-end
-
-% Convert to table with labels
-contingencyTable = array2table(contingencyCounts, ...
-    'VariableNames', categories, ...
-    'RowNames', {'Perivascular_0','NonPerivascular_2'});
-
-disp(contingencyTable);
-
-%% --- Additional checks ---
-
-% Total cells in dataset
-totalCells = sum(validCells.NumValidCells);
-
-allNetworkCells.UniqueCellID = strcat(allNetworkCells.ExperimentID, "_", string(allNetworkCells.CellID));
-
-% Cells that ever participated in NP or mixed
-NP_or_mixed_cells = unique(allNetworkCells.CellID( ...
-    ismember(allNetworkCells.InteractionCategory, {'NP','mixed'})));
-
-% Cells that only participated in mixed (not NP)
-only_mixed_cells = setdiff(unique(allNetworkCells.CellID(strcmp(allNetworkCells.InteractionCategory,'mixed'))), ...
-                           unique(allNetworkCells.CellID(strcmp(allNetworkCells.InteractionCategory,'NP'))));
-
-fprintf('Total unique cells: %d\n', totalCells);
-fprintf('Cells in NP or mixed: %d\n', numel(NP_or_mixed_cells));
-fprintf('Cells only in mixed: %d\n', numel(only_mixed_cells));

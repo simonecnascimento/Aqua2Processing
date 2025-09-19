@@ -90,6 +90,22 @@ eventRate_clusters = [eventRate_directions; eventRate_directionCounts];
 eventRate_clusters = [eventRate_clusters, cells];
 
 combinedTable_clusters = addvars(combinedTable_complete, eventRate_clusterID, 'NewVariableNames', 'eventRate_clusterID');
+% 
+% cluster6 = [];
+% for cell = 1:size(combinedTable_clusters,2)
+%     if combinedTable_clusters.eventRate_clusterID(cell) == 6
+%         cellID = [combinedTable_clusters.("Cell ID")(cell); combinedTable_clusters.("Number of Events")(cell); combinedTable_clusters.fileNameColumn(cell); combinedTable_clusters.("eventRate_clusterID")(cell)];
+%         cluster6 = [cluster6; cellID];
+%     end
+% end
+
+% Find rows where eventRate_clusterID == 6
+mask = combinedTable_clusters.eventRate_clusterID == 6;
+
+% Extract relevant columns into a new table
+cluster6 = combinedTable_clusters(mask, ...
+    {'Cell ID','Number of Events','fileNameColumn','eventRate_clusterID'});
+
 
 % % Example 1: Acute Increase
 % AcuteIncrease = [7 7; 3 4];
@@ -105,20 +121,39 @@ combinedTable_clusters = addvars(combinedTable_complete, eventRate_clusterID, 'N
 % 
 
 % max dFF during CSD
+preCSD_maxDFF = table2cell(paramTables_allPhases.Max_dFF(:,2));
 duringCSD_maxDFF = table2cell(paramTables_allPhases.Max_dFF(:,3));
+postCSD_maxDFF = table2cell(paramTables_allPhases.Max_dFF(:,4));
 
 % Assuming rates_mHz is Nx3 (columns: preCSD, duringCSD, postCSD)
 combinedTable_clusters = addvars(combinedTable_clusters, ...
-    rates_mHz(:,1), rates_mHz(:,2), rates_mHz(:,3), duringCSD_maxDFF,...
-    'NewVariableNames', {'eventRate_preCSD', 'eventRate_duringCSD', 'eventRate_postCSD', 'duringCSD_maxDFF'});
+    rates_mHz(:,1), rates_mHz(:,2), rates_mHz(:,3), preCSD_maxDFF, duringCSD_maxDFF, postCSD_maxDFF,...
+    'NewVariableNames', {'eventRate_preCSD', 'eventRate_duringCSD', 'eventRate_postCSD', 'preCSD_maxDFF', 'duringCSD_maxDFF', 'postCSD_maxDFF'});
+
+preCSD_maxDFF_all = [];
+for x = 1:size(combinedTable_clusters,1)
+    if ismember(combinedTable_clusters.eventRate_clusterID(x), [3 6])
+        preCSD_maxDFF_x = combinedTable_clusters.preCSD_maxDFF(x);
+        preCSD_maxDFF_all = [preCSD_maxDFF_all; preCSD_maxDFF_x];
+    end
+end
 
 duringCSD_maxDFF_all = [];
 for x = 1:size(combinedTable_clusters,1)
-    if combinedTable_clusters.eventRate_clusterID(x) == 2
+    if ismember(combinedTable_clusters.eventRate_clusterID(x), [1 2 3])
         duringCSD_maxDFF_x = combinedTable_clusters.duringCSD_maxDFF(x);
         duringCSD_maxDFF_all = [duringCSD_maxDFF_all; duringCSD_maxDFF_x];
     end
 end
+
+postCSD_maxDFF_all = [];
+for x = 1:size(combinedTable_clusters,1)
+    if ismember(combinedTable_clusters.eventRate_clusterID(x), [3 6])
+        postCSD_maxDFF_x = combinedTable_clusters.postCSD_maxDFF(x);
+        postCSD_maxDFF_all = [postCSD_maxDFF_all; postCSD_maxDFF_x];
+    end
+end
+
 
 
 
@@ -167,12 +202,12 @@ rate_cluster_chronicIncrease_nonperi  = [];
 rate_cluster_chronicDecrease_peri     = [];
 rate_cluster_chronicDecrease_nonperi  = [];
 
-% rate_cluster_AllacuteIncrease_peri    = [];
-% rate_cluster_AllacuteIncrease_nonperi = [];
-% rate_cluster_AllchronicIncrease_peri  = [];
-% rate_cluster_AllchronicIncrease_nonperi = [];
-% rate_cluster_AllchronicDecrease_peri  = [];
-% rate_cluster_AllchronicDecrease_nonperi = [];
+rate_cluster_AllacuteIncrease_peri    = [];
+rate_cluster_AllacuteIncrease_nonperi = [];
+rate_cluster_AllchronicIncrease_peri  = [];
+rate_cluster_AllchronicIncrease_nonperi = [];
+rate_cluster_AllchronicDecrease_peri  = [];
+rate_cluster_AllchronicDecrease_nonperi = [];
 
 % === Loop through each cell ===
 for cellCluster = 1:size(rates_mHz, 1)
@@ -201,30 +236,30 @@ for cellCluster = 1:size(rates_mHz, 1)
         end
     end
 
-%     % --- Combined clusters ---
-%     if ismember(clusterID, [1, 2, 3]) % All acute increase
-%         if cellType == 0
-%             rate_cluster_AllacuteIncrease_peri = [rate_cluster_AllacuteIncrease_peri; currentCell_rate];
-%         elseif cellType == 2
-%             rate_cluster_AllacuteIncrease_nonperi = [rate_cluster_AllacuteIncrease_nonperi; currentCell_rate];
-%         end
-%     end
-% 
-%     if ismember(clusterID, [1, 4]) % All chronic increase
-%         if cellType == 0
-%             rate_cluster_AllchronicIncrease_peri = [rate_cluster_AllchronicIncrease_peri; currentCell_rate];
-%         elseif cellType == 2
-%             rate_cluster_AllchronicIncrease_nonperi = [rate_cluster_AllchronicIncrease_nonperi; currentCell_rate];
-%         end
-%     end
-% 
-%     if ismember(clusterID, [3, 6]) % All chronic decrease
-%         if cellType == 0
-%             rate_cluster_AllchronicDecrease_peri = [rate_cluster_AllchronicDecrease_peri; currentCell_rate];
-%         elseif cellType == 2
-%             rate_cluster_AllchronicDecrease_nonperi = [rate_cluster_AllchronicDecrease_nonperi; currentCell_rate];
-%         end
-%     end
+    % --- Combined clusters ---
+    if ismember(clusterID, [1, 2, 3]) % All acute increase
+        if cellType == 0
+            rate_cluster_AllacuteIncrease_peri = [rate_cluster_AllacuteIncrease_peri; currentCell_rate];
+        elseif cellType == 2
+            rate_cluster_AllacuteIncrease_nonperi = [rate_cluster_AllacuteIncrease_nonperi; currentCell_rate];
+        end
+    end
+
+    if ismember(clusterID, [1, 4]) % All chronic increase
+        if cellType == 0
+            rate_cluster_AllchronicIncrease_peri = [rate_cluster_AllchronicIncrease_peri; currentCell_rate];
+        elseif cellType == 2
+            rate_cluster_AllchronicIncrease_nonperi = [rate_cluster_AllchronicIncrease_nonperi; currentCell_rate];
+        end
+    end
+
+    if ismember(clusterID, [3, 6]) % All chronic decrease
+        if cellType == 0
+            rate_cluster_AllchronicDecrease_peri = [rate_cluster_AllchronicDecrease_peri; currentCell_rate];
+        elseif cellType == 2
+            rate_cluster_AllchronicDecrease_nonperi = [rate_cluster_AllchronicDecrease_nonperi; currentCell_rate];
+        end
+    end
 end
 
 % Initialize group labels

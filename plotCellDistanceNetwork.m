@@ -1,4 +1,4 @@
-function [adjMatrix, centers_allCells, G, rowsWithSingleAppearance, nodeDegree] = plotCellDistanceNetwork(data_CFU, data_analysis, simultaneousMatrixDelaybyCell, simultaneousMatrixDelaybyCell_average, pwd, AquA_fileName, tableNames, phase)
+function [adjMatrix, centers_allCells, G, adjMatrixValid, centers_sub, rowsWithSingleAppearance, nodeDegree_total] = plotCellDistanceNetwork(data_CFU, data_analysis, event_cell_Table, simultaneousMatrixDelaybyCell, simultaneousMatrixDelaybyCell_average, pwd, AquA_fileName, tableNames, phase)
     % Function to plot a directed graph representing cell distance networks
     % and optionally save the resulting figure.
     % Inputs:
@@ -42,15 +42,51 @@ function [adjMatrix, centers_allCells, G, rowsWithSingleAppearance, nodeDegree] 
 
     % Select only the valid cells
     validCells = data_analysis.validCells;
+    cells = cell2mat(event_cell_Table(:,1));
     
     % Compute cell centers
-    centers_allCells = [];
+%     centers_allCells = [];
+%     validCellsWithCoords = [];  % keep track of cells that actually have coordinates
+%     for idx = 1:numel(validCells)
+%         i = validCells(idx);
+%         coords = cellCoords{i,2};  % numeric array of coordinates
+%         
+%         if ~isempty(coords)
+%             [rows1, cols1] = find(coords ~= 0);  % non-zero coordinates
+%             if ~isempty(rows1)
+%                 centers = [mean(rows1), mean(cols1)];
+%                 centers_allCells = [centers_allCells; centers];
+%                 validCellsWithCoords = [validCellsWithCoords; i];  % keep this cell
+%             end
+%         end
+%     end
+
+    numTotalCells = numel(cells);        
+    centers_allCells = NaN(numTotalCells, 2);  % default NaN
+    
     for idx = 1:numel(validCells)
-        i = validCells(idx);  
-        [rows1, cols1] = find(cellCoords{i,2} ~= 0); % Extract coordinates of non-zero elements
-        centers = [mean(rows1), mean(cols1)]; % Compute center coordinates
-        centers_allCells = [centers_allCells; centers];
+        cellNum = validCells(idx);         % actual cell index (1,2,3,...,14)
+        coords = cellCoords{cellNum,2};    % coordinates for this cell
+    
+        if ~isempty(coords)
+            [rows1, cols1] = find(coords ~= 0);  % non-zero coordinates
+            if ~isempty(rows1)
+                centers_allCells(cellNum,:) = [mean(rows1), mean(cols1)];
+            end
+        end
     end
+    
+    % replace NaN with a dummy coordinate (e.g., outside the image range)
+    centers_allCells_plot = centers_allCells;
+    nanIdx = isnan(centers_allCells_plot(:,1));
+    centers_allCells_plot(nanIdx,:) = -100;  % or any number outside axis limits
+  
+%     for idx = 1:numel(validCells)
+%         i = validCells(idx);  
+%         [rows1, cols1] = find(cellCoords{i,2} ~= 0); % Extract coordinates of non-zero elements
+%         centers = [mean(rows1), mean(cols1)]; % Compute center coordinates
+%         centers_allCells = [centers_allCells; centers];
+%     end
     
     % Nodes, edges, and weights
     edgeWeights = simultaneousMatrixDelaybyCell2;
@@ -63,14 +99,24 @@ function [adjMatrix, centers_allCells, G, rowsWithSingleAppearance, nodeDegree] 
     adjMatrix = cell2mat(connectionsMatrix);
     adjMatrix(isnan(adjMatrix)) = 0; % Replace NaN with 0
     %adjMatrix(numericWeights < 2) = 0; % Remove edges with weights < 2
+    % Filter adjacency matrix for only existing cells
+    adjMatrixValid = adjMatrix(validCells, validCells);
 
     % Create directed graph
-    G = digraph(adjMatrix);
+    %G = digraph(adjMatrix);
     
     % Use only valid cells
-    G.Nodes.Name = cellstr(string(validCells(:)));
-    nodeNames = G.Nodes.Name;
+    %G.Nodes.Name = cellstr(string(numCells(:)));
+    %nodeNames = G.Nodes.Name;
 
+    % Create node table
+    nodeTable1 = table(cellstr(string(cells(:))), 'VariableNames', {'Name'});
+    G_total = digraph(adjMatrix, nodeTable1);
+    nodeDegree_total = outdegree(G_total);
+    
+    % Create node table
+    nodeTable = table(cellstr(string(validCells(:))), 'VariableNames', {'Name'});
+    G = digraph(adjMatrixValid, nodeTable);
     % Get node degree
     nodeDegree = outdegree(G);
 
@@ -107,7 +153,11 @@ function [adjMatrix, centers_allCells, G, rowsWithSingleAppearance, nodeDegree] 
     hold(axesHandle, 'on');
     
     % Plot graph
-    h = plot(G, 'XData', centers_allCells(:, 2), 'YData', centers_allCells(:, 1));
+    % Build digraph only for valid nodes
+    G = digraph(adjMatrixValid, nodeTable);
+    centers_sub = centers_allCells(validCells, :); % corresponding coordinates
+
+    h = plot(G, 'XData', centers_sub(:,2), 'YData', centers_sub(:,1));
     h.MarkerSize = 7;
     h.ArrowSize = 10;
     h.NodeFontSize = 15;
@@ -129,6 +179,9 @@ function [adjMatrix, centers_allCells, G, rowsWithSingleAppearance, nodeDegree] 
     % Convert numeric node indices to strings
     nonPerivascularNames = arrayfun(@num2str, nonPerivascular, 'UniformOutput', false);
     perivascularNames = arrayfun(@num2str, perivascular, 'UniformOutput', false);
+
+    % Node names from the table
+    nodeNames = nodeTable.Name;  % column cell array of strings
 
     % Find valid nodes in graph for each group
     validNonPerivascular = intersect(nonPerivascularNames, nodeNames);

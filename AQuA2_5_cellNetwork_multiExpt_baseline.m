@@ -54,7 +54,7 @@ percentageConnectedAll = cell(length(sortedFileNames), 1);
 NetworkTableAll_T = table(); % empty table
 %load('D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\percent_cells_with_network.mat');
 
-for experiment = 2:length(sortedFileNames)
+for experiment = 1:length(sortedFileNames)
  
     [data_analysis, data_aqua, data_CFU, AquA_fileName] = loadAnalysisData(sortedFileNames, experiment);
     event_cell_Table = struct2cell(data_analysis.resultsTable)'; %+
