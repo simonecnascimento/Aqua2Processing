@@ -208,7 +208,6 @@ perivascular_negative_indices = fullCraniotomy_coefficients == 2;
 fullCraniotomy_combinedTable2_perivascular_positive_indices = fullCraniotomy_combinedTable2(perivascular_positive_indices,:);
 fullCraniotomy_combinedTable2_perivascular_negative_indices = fullCraniotomy_combinedTable2(perivascular_negative_indices,:);
 
-
 %Perivascular Positive
 area_perivascular_positive= fullCraniotomy_combinedTable2_perivascular_positive_indices(:,"Area(um2)");
 perimeter_perivascular_positive = fullCraniotomy_combinedTable2_perivascular_positive_indices(:,"Perimeter");
