@@ -4,16 +4,15 @@ clear all;
 
 % Set the directory for the experiment you need
 fullCraniotomyBaselineDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\1._analysis.mat';
-%fullCraniotomyCSDDir = 'V:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\CSD\corrected_for_pinprick\1._analysis.mat';
-% thinBoneBaselineDir = 'D:\2photon\Simone\Simone_Macrophages\AQuA2_Results\thinBone\_analysis.mat';
-
 cd (fullCraniotomyBaselineDir);
+
 % Get all .mat files in the directory
 FilesAll = dir(fullfile(fullCraniotomyBaselineDir, '*_analysis.mat')); 
 
 % Extract file names
 fileNames = {FilesAll.name};
 sortedFileNames = sortFileNames(fileNames);
+
 
 %% Extract and combine resultData from each experiment
 
@@ -36,6 +35,7 @@ for i = 1:length(sortedFileNames)
 end
 
 %% after the extraction was done
+
 clear all;
 %for fullCraniotomy baseline data - load spreadsheet and add Var3
 load('V:\2photon\Simone\Simone_Macrophages\AQuA2_Results\fullCraniotomy\baseline\AQuA2_data_fullCraniotomy_features_baseline.mat')
@@ -51,14 +51,14 @@ fullCraniotomy_nonPerivascular_indices = fullCraniotomy_cellLocation == 2; % Ind
 fullCraniotomy_combinedTable_perivascular = fullCraniotomy_combinedTable(perivascular_indices,:);
 fullCraniotomy_combinedTable_nonPerivascular = fullCraniotomy_combinedTable(nonPerivascular_indices,:);
 
-%for thinBone data - create a new table 'multinucleatedCells' and add Var1
-load('V:\2photon\Simone\Simone_Macrophages\AQuA2_Results\thinBone\AQuA2_data_thinBone.mat')
-thinBone_multinucleated = zeros(94,1);
-thinBone_combinedTable = addvars(combinedTable, thinBone_multinucleated.Var1, 'NewVariableNames', 'Multinucleated');
-thinBone_cellLocation = thinBone_combinedTable{:,13};
-thinBone_all_NM_indices = thinBone_multinucleated == 0;
-thinBone_numOnes = sum(thinBone_all_NM_indices);
-thinBone_combinedTable = combinedTable(thinBone_all_NM_indices,:);
+% %for thinBone data - create a new table 'multinucleatedCells' and add Var1
+% load('V:\2photon\Simone\Simone_Macrophages\AQuA2_Results\thinBone\AQuA2_data_thinBone.mat')
+% thinBone_multinucleated = zeros(94,1);
+% thinBone_combinedTable = addvars(combinedTable, thinBone_multinucleated.Var1, 'NewVariableNames', 'Multinucleated');
+% thinBone_cellLocation = thinBone_combinedTable{:,13};
+% thinBone_all_NM_indices = thinBone_multinucleated == 0;
+% thinBone_numOnes = sum(thinBone_all_NM_indices);
+% thinBone_combinedTable = combinedTable(thinBone_all_NM_indices,:);
 
 %% Count perivascular cells labeled with red and those not labeled with red
 perivascular_red = sum(fullCraniotomy_cellLocation == 0 & fullCraniotomy_redLabel == 1);

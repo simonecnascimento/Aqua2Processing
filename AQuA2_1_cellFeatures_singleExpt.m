@@ -7,7 +7,7 @@
 clear all;
 clc;
 
-spreadsheetPath = 'R:\Levy Lab\2photon\ImagingDatasets_Simone_241017.xlsx';
+spreadsheetPath = 'R:\Levy Lab\2photon\ImagingDatasets_Simone.xlsx';
 sheet = 'Macrophage';
 dataTable = readcell(spreadsheetPath, 'sheet',sheet);  
 colNames = dataTable(1,:); %remove all info and leave just column names
